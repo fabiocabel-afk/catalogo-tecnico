@@ -1,0 +1,2101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Catálogo Técnico PWA</title>
+    <link class="favicon-link" rel="icon" type="image/png" href="./favicon.png">
+    <link class="apple-touch-icon" href="./favicon.png">
+    <link class="manifest" href="./manifest.json">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --text: #0f172a;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.03), 0 1px 2px rgba(15, 23, 42, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.05), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: var(--background);
+            color: var(--text);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: var(--surface);
+            padding: 0.8rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            z-index: 10;
+            position: relative;
+            height: 52px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-logo {
+            width: 28px;
+            height: 28px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        .menu-btn {
+            background: none;
+            border: none;
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: var(--text);
+            padding: 0.2rem 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .menu-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 10px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: none;
+            flex-direction: column;
+            min-width: 220px;
+            z-index: 99;
+            overflow: hidden;
+        }
+
+        .menu-dropdown.active {
+            display: flex;
+        }
+
+        .menu-item {
+            background: none;
+            border: none;
+            padding: 0.6rem 1rem;
+            text-align: left;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            color: var(--text);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .menu-icon-circle {
+            width: 26px;
+            height: 26px;
+            background-color: #64a0bc;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .menu-icon-circle.danger-circle {
+            background-color: #B70006;
+        }
+
+        .menu-icon-circle img {
+            width: 16px;
+            height: 16px;
+            object-fit: contain;
+        }
+
+        .menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .menu-item:active {
+            background: #f1f5f9;
+        }
+
+        .menu-item.danger {
+            color: var(--danger);
+        }
+
+        #app-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            padding-top: 0.4rem;
+        }
+
+        .image-viewer {
+            height: 38vh;
+            background: #1e293b;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0.4rem 0.8rem;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .image-slider {
+            display: flex;
+            height: 100%;
+            width: 100%;
+            transition: transform 0.25s ease-out;
+        }
+
+        .image-slider.slide-up {
+            transform: translateY(-100%) !important;
+            transition: transform 0.25s ease-in !important;
+        }
+
+        .image-slider.slide-down {
+            transform: translateY(100%) !important;
+            transition: transform 0.25s ease-in !important;
+        }
+
+        .image-slider.instant-bottom {
+            transform: translateY(100%) !important;
+            transition: none !important;
+        }
+
+        .image-slider.instant-top {
+            transform: translateY(-100%) !important;
+            transition: none !important;
+        }
+
+        .image-slider.slide-in {
+            transform: translateY(0%) !important;
+            transition: transform 0.25s ease-out !important;
+        }
+
+        .slide {
+            min-width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 0.5rem 0.5rem 2.2rem 0.5rem;
+        }
+
+        .slide img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .no-image {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            padding-bottom: 2rem;
+        }
+
+        .dots-container {
+            position: absolute;
+            bottom: 2.5rem;
+            display: flex;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 4px 8px;
+            border-radius: 20px;
+            pointer-events: none;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+
+        .dot.active {
+            background: #ffffff;
+            width: 12px;
+            border-radius: 3px;
+        }
+
+        .piece-navigator-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 34px;
+            background: rgba(15, 23, 42, 0.6);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1rem;
+            z-index: 5;
+        }
+
+        .nav-piece-btn {
+            background: none;
+            border: none;
+            color: #ffffff;
+            font-size: 0.8rem;
+            cursor: pointer;
+            padding: 0.4rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+
+        .nav-piece-btn:hover {
+            color: var(--primary);
+        }
+
+        .nav-piece-counter {
+            color: #ffffff;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+
+        .img-arrow-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1.2rem;
+            width: 36px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 4;
+            border-radius: 6px;
+            opacity: 0;
+            transition: opacity 0.2s, background 0.2s;
+        }
+
+        .img-arrow-btn.left { left: 8px; }
+        .img-arrow-btn.right { right: 8px; }
+
+        .img-arrow-btn:hover {
+            background: rgba(15, 23, 42, 0.8);
+        }
+
+        @media (hover: hover) {
+            .image-viewer:hover .img-arrow-btn {
+                opacity: 1;
+            }
+        }
+
+        .piece-info-card {
+            background: var(--surface);
+            margin: 0.4rem 0.8rem;
+            padding: 1rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .title-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .piece-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text);
+            word-break: break-word;
+            line-height: 1.3;
+        }
+
+        .info-icon-btn {
+            background: rgba(37, 99, 235, 0.08);
+            border: none;
+            font-size: 1.1rem;
+            color: var(--primary);
+            cursor: pointer;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+
+        .info-icon-btn:active {
+            background: rgba(37, 99, 235, 0.18);
+        }
+
+        .piece-code {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .measurements-card-container {
+            flex: 1;
+            background: var(--surface);
+            margin: 0.4rem 0.8rem 0.8rem 0.8rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            overflow-y: auto;
+            position: relative;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        thead {
+            position: sticky;
+            top: 0;
+            background: #f1f5f9;
+            z-index: 2;
+            box-shadow: 0 1px 0 var(--border);
+        }
+
+        th, td {
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+
+        th {
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr:active {
+            background: #f8fafc;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.3);
+            backdrop-filter: blur(2px);
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            z-index: 100;
+            visibility: hidden;
+            opacity: 0;
+            transition: 0.2s ease-in-out;
+        }
+
+        .modal.active {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            width: 95%;
+            max-width: 500px;
+            margin-top: 56px; 
+            max-height: calc(100vh - 70px);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-md), 0 20px 25px -5px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+        }
+
+        .modal-fixed-header {
+            padding: 1.2rem 1.2rem 0 1.2rem;
+            background: var(--surface);
+            z-index: 5;
+        }
+
+        .form-tabs {
+            display: flex;
+            gap: 0.3rem;
+            margin-top: 0.8rem;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding-bottom: 4px;
+            -webkit-overflow-scrolling: touch;
+            width: 100%;
+        }
+
+        .form-tab-btn {
+            flex: 1 1 auto;
+            padding: 0.4rem 0.5rem;
+            background: #f1f5f9;
+            border: 1px solid var(--border);
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 12px;
+            text-align: center;
+            transition: all 0.2s ease;
+            min-width: 0;
+            text-overflow: ellipsis;
+            overflow: hidden;
+        }
+
+        .form-tab-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+        }
+
+        .cadastro-form-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.4rem 1.4rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-tab-content {
+            display: none;
+        }
+
+        .form-tab-content.active {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .form-group label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        input, select, textarea {
+            padding: 0.65rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 1rem;
+            width: 100%;
+            color: var(--text);
+            background: var(--surface);
+        }
+
+        .search-results, .list-results {
+            border: 1px solid var(--border);
+            border-top: none;
+            max-height: 250px;
+            overflow-y: auto;
+            border-radius: 0 0 6px 6px;
+            background: white;
+            margin-top: 2px;
+        }
+
+        .list-results {
+            border-top: 1px solid var(--border);
+            max-height: calc(100vh - 240px);
+            border-radius: 6px;
+        }
+
+        .search-item {
+            padding: 0.75rem;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+            transition: background 0.15s;
+        }
+
+        .search-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-item:hover {
+            background: #f1f5f9;
+        }
+
+        .measurement-row-form {
+            display: grid;
+            grid-template-columns: 2fr 1.2fr 1fr auto;
+            gap: 0.4rem;
+            align-items: center;
+        }
+
+        .material-row-form {
+            display: grid;
+            grid-template-columns: 3fr auto;
+            gap: 0.4rem;
+            align-items: center;
+        }
+
+        .info-popup-section {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .fotos-atuais-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin-top: 0.25rem;
+        }
+
+        .foto-atual-item {
+            position: relative;
+            aspect-ratio: 1;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            background: #000;
+        }
+
+        .foto-atual-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .btn-remover-foto {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(239, 68, 68, 0.85);
+            color: white;
+            border: none;
+            font-size: 0.7rem;
+            padding: 0.2rem 0;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .modal-footer-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            padding: 1rem 1.2rem 1.2rem 1.2rem;
+            border-top: 1px solid var(--border);
+            background: var(--surface);
+            width: 100%;
+            z-index: 5;
+        }
+
+        .modal-footer-buttons .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.85rem;
+            font-size: 1rem;
+            text-align: center;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .modal-footer-buttons .btn-secondary {
+            background: #e2e8f0;
+            color: var(--text);
+        }
+
+        .backup-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+            padding: 0.5rem 0;
+        }
+        .backup-meta-box {
+            background: #f1f5f9;
+            padding: 0.8rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            border: 1px solid var(--border);
+        }
+        .backup-meta-box strong {
+            color: var(--text);
+        }
+        .backup-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            width: 100%;
+        }
+        .backup-btn-export {
+            background: #2563eb;
+            color: white;
+        }
+        .backup-btn-export:active { background: #1d4ed8; }
+        .backup-btn-import {
+            background: #10b981;
+            color: white;
+        }
+        .backup-btn-import:active { background: #047857; }
+        .backup-btn-danger {
+            background: #fee2e2;
+            color: var(--danger);
+            border: 1px solid #fca5a5;
+        }
+        .backup-btn-danger:active { background: #ffeeec; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-brand">
+            <img src="./favicon.png" class="header-logo" alt="Logo">
+            <h2>Catálogo</h2>
+        </div>
+        
+        <button class="menu-btn" onclick="toggleMenu(event)">☰</button>
+        
+        <div class="menu-dropdown" id="menuDropdown">
+            <button class="menu-item" onclick="execMenu('buscar')">
+                <div class="menu-icon-circle"><img src="img/opcao_buscar.png" alt="Buscar"></div> Buscar
+            </button>
+            <button class="menu-item" onclick="execMenu('text')">
+                <div class="menu-icon-circle"><img src="img/opcao_lista.png" alt="Lista"></div> Lista
+            </button>
+            <button class="menu-item" onclick="execMenu('exportar_pdf')">
+                <div class="menu-icon-circle"><img src="img/opcao_catalogo.png" alt="Gerar Catálogo"></div> Gerar Catálogo
+            </button>
+            <button class="menu-item" onclick="execMenu('backup')">
+                <div class="menu-icon-circle"><img src="img/opcao_restauracao.png" alt="Backup"></div> Backup e Restauração
+            </button>
+            <button class="menu-item" onclick="execMenu('novo')">
+                <div class="menu-icon-circle"><img src="img/opcao_novo.png" alt="Novo Registro"></div> Novo Registro
+            </button>
+            <div id="menuPecaActions" style="display: none; flex-direction: column;">
+                <button class="menu-item" onclick="execMenu('compartilhar')">
+                    <div class="menu-icon-circle"><img src="img/opcao_compartilhar.png" alt="Compartilhar"></div> Compartilhar
+                </button>
+                <button class="menu-item" onclick="execMenu('editar')">
+                    <div class="menu-icon-circle"><img src="img/opcao_editar.png" alt="Editar Peça"></div> Editar Peça
+                </button>
+                <button class="menu-item danger" onclick="execMenu('excluir')">
+                    <div class="menu-icon-circle danger-circle"><img src="img/opcao_excluir.png" alt="Excluir Peça"></div> Excluir Peça
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div id="app-container">
+        <div class="image-viewer" id="imageViewer">
+            <button class="img-arrow-btn left" onclick="mudarFoto(-1)" title="Foto Anterior">‹</button>
+            <button class="img-arrow-btn right" onclick="mudarFoto(1)" title="Próxima Foto">›</button>
+
+            <div class="image-slider" id="imageSlider"></div>
+            <div class="dots-container" id="dotsContainer"></div>
+
+            <div class="piece-navigator-bar">
+                <button class="nav-piece-btn" onclick="mudarPeca(-1)" title="Peça Anterior">◄</button>
+                <div class="nav-piece-counter" id="navPieceCounter">0 / 0</div>
+                <button class="nav-piece-btn" onclick="mudarPeca(1)" title="Próxima Peça">►</button>
+            </div>
+        </div>
+
+        <div class="piece-info-card">
+            <div class="title-container">
+                <div class="piece-title" id="viewNome">Nenhuma peça cadastrada</div>
+                <button class="info-icon-btn" id="infoIconBtn" onclick="openInfoModal()">ⓘ</button>
+            </div>
+            <div class="piece-code" id="viewMateriaisPeso" style="display: none; margin-bottom: 2px;"></div>
+            <div class="piece-code" id="viewCodigo">Código: --</div>
+        </div>
+
+        <div class="measurements-card-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome da Medida</th>
+                        <th>Valor</th>
+                        <th>Unidade</th>
+                    </tr>
+                </thead>
+                <tbody id="measurementsTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="modal" id="infoModal">
+        <div class="modal-content" style="overflow-y: auto; padding: 1.2rem;">
+            <h3 id="infoModalTitle" style="font-size:1.1rem; margin-bottom:0.5rem;">Detalhes da Peça</h3>
+            <div class="info-popup-section" id="infoObsContainer" style="margin-bottom:0.5rem;">
+                <strong>Observação:</strong>
+                <p id="infoObservacaoText" style="margin-top: 4px; font-size: 0.95rem; color: var(--text);"></p>
+            </div>
+            <div class="info-popup-section" id="infoGrupoContainer" style="margin-bottom:0.5rem; border-left: 4px solid var(--primary);">
+                <strong>Grupo:</strong>
+                <p id="infoGrupoText" style="margin-top: 4px; font-size: 0.95rem; color: var(--text);"></p>
+            </div>
+            <div class="info-popup-section" id="infoMetaContainer" style="border-left: 4px solid var(--warning); background-color: #fffbeb;">
+                <strong>Controle Interno:</strong>
+                <p id="infoMetaText" style="margin-top: 4px; font-size: 0.9rem; color: var(--text); white-space: pre-wrap; line-height: 1.4;"></p>
+            </div>
+            <div style="display: flex; justify-content: center; margin-top: 1rem;">
+                <button class="btn-secondary" style="width:100%; padding:0.75rem; border:none; border-radius:8px; font-weight:600; cursor:pointer;" onclick="closeModal('infoModal')">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="searchModal">
+        <div class="modal-content" style="overflow-y: auto; padding: 1.4rem;">
+            <h3 style="font-size:1.1rem; margin-bottom:0.8rem;">Buscar Peça</h3>
+            <div class="form-group">
+                <input type="text" id="searchInput" placeholder="Comece a digitar (nome, código ou grupo)..." oninput="handleSearchInput()">
+                <div class="search-results" id="searchResults" style="display: none;"></div>
+            </div>
+            <div style="display: flex; justify-content: center; margin-top: 1.2rem;">
+                <button class="btn-secondary" style="width:100%; padding:0.75rem; border:none; border-radius:8px; font-weight:600; cursor:pointer;" onclick="closeModal('searchModal')">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="listModal">
+        <div class="modal-content" style="overflow-y: auto; padding: 1.4rem;">
+            <h3 style="font-size:1.1rem; margin-bottom:0.8rem;">Lista de Peças</h3>
+            <div class="list-results" id="listModalResults"></div>
+            <div style="display: flex; justify-content: center; margin-top: 1.2rem;">
+                <button class="btn-secondary" style="width:100%; padding:0.75rem; border:none; border-radius:8px; font-weight:600; cursor:pointer;" onclick="closeModal('listModal')">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="backupModal">
+        <div class="modal-content" style="overflow-y: auto; padding: 1.4rem;">
+            <h3 style="font-size:1.1rem; margin-bottom:0.8rem;">Backup e Restauração</h3>
+            
+            <div class="backup-panel">
+                <div class="backup-meta-box">
+                    <div><strong>Último Backup:</strong> <span id="lblUltimoBackup">--</span></div>
+                    <div><strong>Última Restauração:</strong> <span id="lblUltimoRestauro">--</span></div>
+                </div>
+
+                <div class="form-group">
+                    <label>Gerar arquivo de segurança:</label>
+                    <button class="backup-btn backup-btn-export" onclick="exportarDadosSistema()">📥 Exportar Dados (Salvar Arquivo)</button>
+                </div>
+
+                <div class="form-group">
+                    <label>Carregar dados salvos anteriormente:</label>
+                    <button class="backup-btn backup-btn-import" onclick="document.getElementById('inputImportFile').click()">📤 Importar Dados (Restaurar)</button>
+                    <input type="file" id="inputImportFile" accept=".json" style="display: none;" onchange="importarDadosSistema(this)">
+                </div>
+
+                <div class="form-group" style="margin-top: 0.5rem;">
+                    <label>Zerar aplicação:</label>
+                    <button class="backup-btn backup-btn-danger" onclick="limparTodoOSistemaComAviso()">✕ Excluir Todos os Dados</button>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: center; margin-top: 1.2rem;">
+                <button class="btn-secondary" style="width:100%; padding:0.75rem; border:none; border-radius:8px; font-weight:600; cursor:pointer;" onclick="closeModal('backupModal')">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="deletarOpcaoModal" style="z-index: 110;">
+        <div class="modal-content" style="padding: 1.4rem; margin-top: 80px; max-width: 400px;">
+            <h3 id="deletarOpcaoModalTitle" style="font-size:1.1rem; margin-bottom:0.8rem; color: var(--danger);">✕ Apagar Opção</h3>
+            <div style="display:flex; flex-direction:column; gap:1rem;">
+                <div class="form-group">
+                    <label id="deletarOpcaoLabel">Selecione qual opção deseja excluir permanentemente:</label>
+                    <select id="deletarSelectAlvo"></select>
+                </div>
+                <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4;">Nota: Esta ação remove o nome da lista de sugestões.</p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem;">
+                    <button type="button" class="btn-secondary" style="padding:0.65rem; border:none; border-radius:6px; font-weight:600; cursor:pointer;" onclick="fecharModalDeletarOpcao()">Cancelar</button>
+                    <button type="button" style="padding:0.65rem; background: var(--danger); color:white; border:none; border-radius:6px; font-weight:600; cursor:pointer;" onclick="confirmarDeletarOpcaoGlobal()">Excluir Opção</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="cadastroModal">
+        <div class="modal-content">
+            <div class="modal-fixed-header">
+                <h3 id="modalTitle" style="font-size: 1.1rem;">Cadastrar Nova Peça</h3>
+                <div class="form-tabs">
+                    <button type="button" class="form-tab-btn active" id="btn-tab-peca" onclick="switchTab('tab-peca')">Peça</button>
+                    <button type="button" class="form-tab-btn" id="btn-tab-imagens" onclick="switchTab('tab-imagens')">Imagens</button>
+                    <button type="button" class="form-tab-btn" id="btn-tab-materiais" onclick="switchTab('tab-materiais')">Materiais</button>
+                    <button type="button" class="form-tab-btn" id="btn-tab-medidas" onclick="switchTab('tab-medidas')">Medidas</button>
+                    <button type="button" class="form-tab-btn" id="btn-tab-informacoes" onclick="switchTab('tab-informacoes')">Info</button>
+                </div>
+            </div>
+
+            <form id="cadastroForm" onsubmit="salvarPeca(event)" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+                <input type="hidden" id="formId">
+                <div class="cadastro-form-body">
+                    
+                    <div class="form-tab-content active" id="tab-peca">
+                        <div class="form-group">
+                            <label>Nome da Peça *</label>
+                            <input type="text" id="formNome" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Código da Peça *</label>
+                            <input type="text" id="formCodigo" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Grupo *</label>
+                            <div style="display: grid; grid-template-columns: 1fr auto auto; gap: 0.3rem;">
+                                <select id="formGrupo" required></select>
+                                <button type="button" class="btn-secondary" style="padding:0 0.5rem; font-size:0.85rem;" onclick="criarNovaOpcaoGlobal('grupo')">+ Novo Grupo</button>
+                                <button type="button" class="btn-secondary" style="padding:0 0.5rem; font-size:0.85rem; color:var(--danger);" onclick="abrirDeletarOpcaoGlobal('grupo')">x Excluir Grupo</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-tab-content" id="tab-imagens">
+                        <div class="form-group" id="formFotosAtuaisContainer" style="display: none;">
+                            <label>Fotos Atuais</label>
+                            <div class="fotos-atuais-grid" id="fotosAtuaisGrid"></div>
+                        </div>
+                        <div class="form-group">
+                            <label id="labelFotos">Adicionar Fotos (1 a 6) *</label>
+                            <input type="file" id="formFotos" accept="image/*" multiple onchange="validarFotos(this)">
+                        </div>
+                    </div>
+
+                    <div class="form-tab-content" id="tab-materiais">
+                        <div style="display:grid; grid-template-columns: 2fr 1fr; gap:0.5rem;">
+                            <div class="form-group">
+                                <label>Peso Total</label>
+                                <input type="number" id="formPesoValor" step="any" placeholder="Valor">
+                            </div>
+                            <div class="form-group">
+                                <label>Unidade</label>
+                                <select id="formPesoUnidade">
+                                    <option value="Kg">Kg</option>
+                                    <option value="g">g</option>
+                                    <option value="mg">mg</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-top: 0.5rem;">
+                            <label>Materiais Utilizados</label>
+                            <div id="formMateriaisLista" style="display:flex; flex-direction:column; gap:0.5rem; max-height:180px; overflow-y:auto; border:1px solid var(--border); padding:0.5rem; border-radius:6px;"></div>
+                            <button type="button" class="btn-secondary" style="margin-top:0.3rem; padding:0.6rem; border:none; border-radius:6px; font-weight:600; cursor:pointer;" onclick="adicionarLinhaMaterial()">＋ Adicionar Materiais</button>
+                        </div>
+                    </div>
+
+                    <div class="form-tab-content" id="tab-medidas">
+                        <div class="form-group">
+                            <label>Medidas da Peça</label>
+                            <div id="formMedidasLista" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
+                            <button type="button" class="btn-secondary" style="margin-top:0.5rem; padding:0.6rem; border:none; border-radius:6px; font-weight:600; cursor:pointer;" onclick="adicionarLinhaMedida()">＋ Adicionar Medida</button>
+                        </div>
+                    </div>
+
+                    <div class="form-tab-content" id="tab-informacoes">
+                        <div class="form-group">
+                            <label>Responsável pelas Medidas *</label>
+                            <input type="text" id="formResponsavel" placeholder="Insira o nome do responsável" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Observações (Máx 200 caract.)</label>
+                            <textarea id="formObservacao" maxlength="200" rows="4"></textarea>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer-buttons">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('cadastroModal')">Cancelar</button>
+                    <button type="submit" class="btn" id="btnSalvar">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(err => console.error("Service Worker erro:", err));
+            });
+        }
+
+        let db;
+        const dbName = "CatalogoTecnicoDB";
+
+        function initDB() {
+            const request = indexedDB.open(dbName, 2);
+            request.onerror = (e) => console.error("Erro IndexedDB:", e);
+            request.onsuccess = (e) => {
+                db = e.target.result;
+                carregarPecas();
+                atualizarMetadadosBackupLabels();
+            };
+            request.onupgradeneeded = (e) => {
+                db = e.target.result;
+                if (!db.objectStoreNames.contains("pecas")) {
+                    const store = db.createObjectStore("pecas", { keyPath: "id", autoIncrement: true });
+                    store.createIndex("codigo", "codigo", { unique: true });
+                }
+                if (!db.objectStoreNames.contains("nomesMedidas")) {
+                    db.createObjectStore("nomesMedidas", { keyPath: "nome" });
+                }
+                if (!db.objectStoreNames.contains("nomesGrupos")) {
+                    db.createObjectStore("nomesGrupos", { keyPath: "nome" });
+                }
+                if (!db.objectStoreNames.contains("nomesMateriais")) {
+                    db.createObjectStore("nomesMateriais", { keyPath: "nome" });
+                }
+            };
+        }
+
+        let pecas = [];
+        let currentIndex = 0;
+        let currentPhotoIndex = 0;
+        
+        let nomesMedidasExistentes = [];
+        let nomesGruposExistentes = [];
+        let nomesMateriaisExistentes = [];
+        
+        let fotosTemporariasEdicao = [];
+        let tipoGerenciamentoGlobal = ""; 
+
+        function toggleMenu(e) {
+            e.stopPropagation();
+            document.getElementById('menuDropdown').classList.toggle('active');
+        }
+
+        document.addEventListener('click', () => {
+            document.getElementById('menuDropdown').classList.remove('active');
+        });
+
+        function execMenu(opcao) {
+            document.getElementById('menuDropdown').classList.remove('active');
+            if (opcao === 'buscar') openSearchModal();
+            else if (opcao === 'text') openListModal();
+            else if (opcao === 'exportar_pdf') exportarCatalogoPDF();
+            else if (opcao === 'backup') openBackupModal();
+            else if (opcao === 'novo') openCadastroModal();
+            else if (opcao === 'compartilhar') compartilharPecaAtual();
+            else if (opcao === 'editar') prepararEdicao();
+            else if (opcao === 'excluir') deletarPecaAtual();
+        }
+
+        function switchTab(tabId) {
+            const tabButtons = document.querySelectorAll('.form-tab-btn');
+            const tabContents = document.querySelectorAll('.form-tab-content');
+            
+            tabButtons.forEach(btn => {
+                if (btn.id === 'btn-' + tabId) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            
+            tabContents.forEach(content => {
+                if (content.id === tabId) {
+                    content.classList.add('active');
+                } else {
+                    content.classList.remove('active');
+                }
+            });
+        }
+
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let estaAnimandoPeca = false;
+        const viewerElement = document.getElementById('imageViewer');
+
+        viewerElement.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        }, {passive: true});
+
+        viewerElement.addEventListener('touchend', e => {
+            if (estaAnimandoPeca) return;
+            const diffX = e.changedTouches[0].screenX - touchStartX;
+            const diffY = e.changedTouches[0].screenY - touchStartY;
+
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                if (Math.abs(diffX) > 40) {
+                    if (diffX > 0) mudarFoto(-1);
+                    else mudarFoto(1);
+                }
+            } else {
+                if (Math.abs(diffY) > 40) {
+                    if (diffY > 0) {
+                        animarEMudarPeca(-1);
+                    } else {
+                        animarEMudarPeca(1);
+                    }
+                }
+            }
+        }, {passive: true});
+
+        function resetarVisualizacaoVazia() {
+            document.getElementById('viewNome').innerText = "Nenhuma peça cadastrada";
+            document.getElementById('viewMateriaisPeso').style.display = "none";
+            document.getElementById('viewMateriaisPeso').innerText = "";
+            document.getElementById('viewCodigo').innerText = "Código: --";
+            document.getElementById('menuPecaActions').style.display = "none";
+            document.getElementById('infoIconBtn').style.display = "none";
+            document.getElementById('imageSlider').innerHTML = '';
+            document.getElementById('dotsContainer').innerHTML = '';
+            document.getElementById('measurementsTableBody').innerHTML = '';
+            document.getElementById('navPieceCounter').innerText = "0 / 0";
+        }
+
+        function exibirPecaAtual() {
+            if (pecas.length === 0) {
+                resetarVisualizacaoVazia();
+                return;
+            }
+            const peca = pecas[currentIndex];
+            document.getElementById('viewNome').innerText = peca.nome;
+            
+            const divMatPeso = document.getElementById('viewMateriaisPeso');
+            let textoMatPeso = "";
+            if (peca.materiais && peca.materiais.length > 0) {
+                textoMatPeso += peca.materiais.join(', ');
+            }
+            if (peca.peso && peca.peso.valor) {
+                if (textoMatPeso !== "") textoMatPeso += " | ";
+                textoMatPeso += `${peca.peso.valor} ${peca.peso.unidade || 'Kg'}`;
+            }
+
+            if (textoMatPeso.trim() !== "") {
+                divMatPeso.innerText = textoMatPeso;
+                divMatPeso.style.display = "block";
+            } else {
+                divMatPeso.style.display = "none";
+                divMatPeso.innerText = "";
+            }
+
+            document.getElementById('viewCodigo').innerText = `Código: ${peca.codigo}`;
+            document.getElementById('menuPecaActions').style.display = "flex";
+            document.getElementById('infoIconBtn').style.display = "flex";
+            document.getElementById('navPieceCounter').innerText = `${currentIndex + 1} / ${pecas.length}`;
+            
+            atualizarSliderFotos(peca.fotos);
+
+            const tbody = document.getElementById('measurementsTableBody');
+            tbody.innerHTML = '';
+            if (peca.medidas && peca.medidas.forEach) {
+                peca.medidas.forEach(m => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td>${m.nome}</td><td>${m.valor}</td><td>${m.unidade}</td>`;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+
+        async function compartilharPecaAtual() {
+            if (pecas.length === 0) return;
+            const peca = pecas[currentIndex];
+            let msg = `*Peça:* ${peca.nome}\n`;
+            msg += `*Código:* ${peca.codigo}\n`;
+            
+            if ((peca.materiais && peca.materiais.length > 0) || (peca.peso && peca.peso.valor)) {
+                msg += `\n`;
+                if (peca.materiais && peca.materiais.length > 0) {
+                    msg += `*Materiais:* ${peca.materiais.join(', ')}\n`;
+                }
+                if (peca.peso && peca.peso.valor) {
+                    msg += `*Peso:* ${peca.peso.valor} ${peca.peso.unidade || 'Kg'}\n`;
+                }
+            }
+
+            msg += `\n`;
+            if (peca.medidas && peca.medidas.length > 0) {
+                msg += `*MEDIDAS:*\n`;
+                peca.medidas.forEach(m => {
+                    msg += ` ◆ *${m.nome}:* ${m.valor} ${m.unidade}\n`;
+                });
+                msg += `\n`;
+            }
+            if (peca.observacao && peca.observacao.trim() !== "") {
+                msg += `*Observações:* ${peca.observacao}\n\n`;
+            }
+            msg += `_Enviado via Catálogo Técnico_`;
+
+            let shareData = {
+                title: `Dados da Peça - ${peca.codigo}`,
+                text: msg
+            };
+
+            if (navigator.canShare && peca.fotos && peca.fotos.length > 0) {
+                try {
+                    const blob = await fetch(peca.fotos[0]).then(r => r.blob());
+                    const file = new File([blob], `peca_${peca.codigo}.png`, { type: blob.type });
+                    if (navigator.canShare({ files: [file] })) {
+                        shareData.files = [file];
+                    }
+                } catch (e) {
+                    console.log("Erro ao processar imagem para compartilhamento:", e);
+                }
+            }
+
+            if (navigator.share) {
+                navigator.share(shareData).catch(err => console.log("Compartilhamento cancelado ou erro: ", err));
+            } else {
+                navigator.clipboard.writeText(msg).then(() => {
+                    alert("Dados copiados para a área de transferência! Prontos para colar (Ctrl+V).");
+                }).catch(err => {
+                    alert("Não foi possível compartilhar ou copiar os dados automaticamente.");
+                });
+            }
+        }
+
+        function exportarCatalogoPDF() {
+            if (pecas.length === 0) {
+                alert("Nenhuma peça cadastrada para exportar.");
+                return;
+            }
+            const printWindow = window.open('', '_blank');
+            let htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Catálogo Técnico de Peças</title>
+                <style>
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+                        color: #0f172a;
+                        padding: 12px;
+                        margin: 0;
+                        background: #fff;
+                    }
+                    .header-print {
+                        text-align: center;
+                        border-bottom: 2px solid #64a0bc;
+                        padding-bottom: 8px;
+                        margin-bottom: 15px;
+                    }
+                    .header-print h1 { margin: 0; font-size: 20px; color: #1e3a8a; }
+                    .header-print p { margin: 4px 0 0 0; font-size: 11px; color: #64748b; }
+                    .peca-block {
+                        display: flex;
+                        gap: 12px;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 6px;
+                        padding: 10px 12px;
+                        margin-bottom: 10px;
+                        page-break-inside: avoid;
+                    }
+                    .peca-img-box {
+                        width: 110px;
+                        height: 140px;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: space-between;
+                        flex-shrink: 0;
+                    }
+                    .peca-img-wrap {
+                        width: 110px;
+                        height: 110px;
+                        border: 1px solid #cbd5e1;
+                        border-radius: 4px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        background: #f8fafc;
+                    }
+                    .peca-img-wrap img { max-width: 100%; max-height: 100%; object-fit: contain; }
+                    .peca-code-center { font-size: 11px; font-weight: bold; color: #334155; text-align: center; width: 100%; margin-top: 4px; }
+                    .peca-details { flex: 1; }
+                    .peca-text-format { white-space: pre-wrap; font-family: inherit; font-size: 13px; line-height: 1.4; margin: 0; }
+                    .no-img-text { color: #94a3b8; font-size: 11px; text-align: center; }
+                    @media print { body { padding: 0; } @page { margin: 1cm; } }
+                </style>
+            </head>
+            <body>
+                <div class="header-print">
+                    <h1>Catálogo Técnico Completo</h1>
+                    <p>Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}</p>
+                </div>
+            `;
+
+            pecas.forEach(peca => {
+                htmlContent += `
+                <div class="peca-block">
+                    <div class="peca-img-box">
+                        <div class="peca-img-wrap">
+                            ${peca.fotos && peca.fotos.length > 0 ? `<img src="${peca.fotos[0]}">` : `<span class="no-img-text">Sem foto</span>`}
+                        </div>
+                        <div class="peca-code-center">${peca.codigo}</div>
+                    </div>
+                    <div class="peca-details">
+                        <pre class="peca-text-format"><strong>Peça:</strong> ${peca.nome}`;
+
+                if (peca.materiais && peca.materiais.length > 0) {
+                    htmlContent += `\n\n<strong>Materiais:</strong> ${peca.materiais.join(', ')}`;
+                }
+                if (peca.peso && peca.peso.valor) {
+                    if (!peca.materiais || peca.materiais.length === 0) htmlContent += `\n`;
+                    htmlContent += `\n<strong>Peso:</strong> ${peca.peso.valor} ${peca.peso.unidade || 'Kg'}`;
+                }
+
+                if (peca.medidas && peca.medidas.length > 0) {
+                    htmlContent += `\n\n<strong>Medidas:</strong>`;
+                    peca.medidas.forEach(m => {
+                        htmlContent += `\n • ${m.nome}: ${m.valor} ${m.unidade}`;
+                    });
+                }
+                if (peca.observacao && peca.observacao.trim() !== "") {
+                    htmlContent += `\n\n<strong>Observações:</strong> ${peca.observacao}`;
+                }
+                htmlContent += `</pre>
+                    </div>
+                </div>\n`;
+            });
+
+            htmlContent += `
+                <script>
+                    window.onload = function() {
+                        setTimeout(() => { window.print(); }, 500);
+                    };
+                <\/script>
+            </body>
+            </html>`;
+
+            printWindow.document.open();
+            printWindow.document.write(htmlContent);
+            printWindow.document.close();
+        }
+
+        function atualizarSliderFotos(listaFotos) {
+            const slider = document.getElementById('imageSlider');
+            const dotsContainer = document.getElementById('dotsContainer');
+            slider.innerHTML = '';
+            dotsContainer.innerHTML = '';
+
+            if (!listaFotos || listaFotos.length === 0) {
+                slider.innerHTML = `<div class="slide"><div class="no-image">Nenhuma imagem anexada</div></div>`;
+                currentPhotoIndex = 0;
+                return;
+            }
+            if (currentPhotoIndex >= listaFotos.length) {
+                currentPhotoIndex = 0;
+            }
+            listaFotos.forEach((f, idx) => {
+                const slide = document.createElement('div');
+                slide.className = 'slide';
+                const img = document.createElement('img');
+                img.src = f;
+                img.alt = "Foto da peça";
+                slide.appendChild(img);
+                slider.appendChild(slide);
+
+                const dot = document.createElement('div');
+                dot.className = 'dot' + (idx === currentPhotoIndex ? ' active' : '');
+                dotsContainer.appendChild(dot);
+            });
+            slider.style.transform = `translateX(-${currentPhotoIndex * 100}%)`;
+        }
+
+        function mudarFoto(dir) {
+            const peca = pecas[currentIndex];
+            if (!peca || !peca.fotos || peca.fotos.length <= 1) return;
+            currentPhotoIndex += dir;
+            if (currentPhotoIndex < 0) currentPhotoIndex = peca.fotos.length - 1;
+            if (currentPhotoIndex >= peca.fotos.length) currentPhotoIndex = 0;
+
+            const dots = document.querySelectorAll('#dotsContainer .dot');
+            dots.forEach((d, i) => {
+                if (i === currentPhotoIndex) d.classList.add('active');
+                else d.classList.remove('active');
+            });
+            document.getElementById('imageSlider').style.transform = `translateX(-${currentPhotoIndex * 100}%)`;
+        }
+
+        function mudarPeca(dir) {
+            if (pecas.length <= 1) return;
+            currentIndex += dir;
+            if (currentIndex < 0) currentIndex = pecas.length - 1;
+            if (currentIndex >= pecas.length) currentIndex = 0;
+            currentPhotoIndex = 0;
+            exibirPecaAtual();
+        }
+
+        function animarEMudarPeca(dir) {
+            if (pecas.length <= 1 || estaAnimandoPeca) return;
+            estaAnimandoPeca = true;
+            const slider = document.getElementById('imageSlider');
+
+            slider.classList.add(dir > 0 ? 'slide-up' : 'slide-down');
+
+            setTimeout(() => {
+                currentIndex += dir;
+                if (currentIndex < 0) currentIndex = pecas.length - 1;
+                if (currentIndex >= pecas.length) currentIndex = 0;
+                currentPhotoIndex = 0;
+
+                slider.classList.remove('slide-up', 'slide-down');
+                slider.classList.add(dir > 0 ? 'instant-bottom' : 'instant-top');
+
+                exibirPecaAtual();
+
+                setTimeout(() => {
+                    slider.classList.remove('instant-bottom', 'instant-top');
+                    slider.classList.add('slide-in');
+                    setTimeout(() => {
+                        slider.classList.remove('slide-in');
+                        estaAnimandoPeca = false;
+                    }, 250);
+                }, 30);
+            }, 250);
+        }
+
+        function openInfoModal() {
+            if (pecas.length === 0) return;
+            const peca = pecas[currentIndex];
+            document.getElementById('infoObservacaoText').innerText = peca.observacao && peca.observacao.trim() !== "" ? peca.observacao : "Nenhuma observação informada.";
+            document.getElementById('infoGrupoText').innerText = peca.grupo || "--";
+            
+            const metaText = `Responsável: ${peca.responsavel || 'Não informado'}\nCadastrado em: ${peca.dataCadastro || 'Não informado'}`;
+            document.getElementById('infoMetaText').innerText = metaText;
+
+            document.getElementById('infoModal').classList.add('active');
+        }
+
+        function openSearchModal() {
+            document.getElementById('searchInput').value = "";
+            document.getElementById('searchResults').innerHTML = "";
+            document.getElementById('searchResults').style.display = "none";
+            document.getElementById('searchModal').classList.add('active');
+            setTimeout(() => document.getElementById('searchInput').focus(), 300);
+        }
+
+        function handleSearchInput() {
+            const query = document.getElementById('searchInput').value.toLowerCase().trim();
+            const resultsDiv = document.getElementById('searchResults');
+            resultsDiv.innerHTML = "";
+
+            if (query === "") {
+                resultsDiv.style.display = "none";
+                return;
+            }
+
+            const filtradas = pecas.filter(p => 
+                p.nome.toLowerCase().includes(query) || 
+                p.codigo.toLowerCase().includes(query) ||
+                (p.grupo && p.grupo.toLowerCase().includes(query))
+            );
+
+            if (filtradas.length === 0) {
+                resultsDiv.innerHTML = `<div class="search-item" style="color:var(--text-secondary); text-align:center;">Nenhuma peça encontrada</div>`;
+            } else {
+                filtradas.forEach(p => {
+                    const item = document.createElement('div');
+                    item.className = 'search-item';
+                    item.innerHTML = `<strong>${p.codigo}</strong> - ${p.nome} <span style="font-size:0.75rem; color:var(--primary); float:right;">${p.grupo || ''}</span>`;
+                    item.onclick = () => {
+                        currentIndex = pecas.findIndex(orig => orig.id === p.id);
+                        currentPhotoIndex = 0;
+                        exibirPecaAtual();
+                        closeModal('searchModal');
+                    };
+                    resultsDiv.appendChild(item);
+                });
+            }
+            resultsDiv.style.display = "block";
+        }
+
+        function openListModal() {
+            const resultsDiv = document.getElementById('listModalResults');
+            resultsDiv.innerHTML = "";
+            if (pecas.length === 0) {
+                resultsDiv.innerHTML = `<div class="search-item" style="color:var(--text-secondary); text-align:center; border:none;">Nenhuma peça cadastrada.</div>`;
+            } else {
+                pecas.forEach(p => {
+                    const item = document.createElement('div');
+                    item.className = 'search-item';
+                    item.innerHTML = `<strong>${p.codigo}</strong> - ${p.nome} <br><small style="color:var(--text-secondary)">Grupo: ${p.grupo || '--'}</small>`;
+                    item.onclick = () => {
+                        currentIndex = pecas.findIndex(orig => orig.id === p.id);
+                        currentPhotoIndex = 0;
+                        exibirPecaAtual();
+                        closeModal('listModal');
+                    };
+                    resultsDiv.appendChild(item);
+                });
+            }
+            document.getElementById('listModal').classList.add('active');
+        }
+
+        function openBackupModal() {
+            atualizarMetadadosBackupLabels();
+            document.getElementById('backupModal').classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        async function carregarPecas() {
+            if (!db) return;
+            
+            nomesMedidasExistentes = await lerOpcoesGlobaisDB("nomesMedidas");
+            nomesGruposExistentes = await lerOpcoesGlobaisDB("nomesGrupos");
+            nomesMateriaisExistentes = await lerOpcoesGlobaisDB("nomesMateriais");
+
+            const tx = db.transaction("pecas", "readonly");
+            const store = tx.objectStore("pecas");
+            const request = store.getAll();
+
+            request.onsuccess = () => {
+                pecas = request.result || [];
+                if (currentIndex >= pecas.length) currentIndex = 0;
+                exibirPecaAtual();
+            };
+        }
+
+        function lerOpcoesGlobaisDB(storeName) {
+            return new Promise((resolve) => {
+                if (!db) return resolve([]);
+                try {
+                    const tx = db.transaction(storeName, "readonly");
+                    const store = tx.objectStore(storeName);
+                    const req = store.getAll();
+                    req.onsuccess = () => {
+                        const arr = req.result.map(item => item.nome);
+                        resolve(arr.sort());
+                    };
+                    req.onerror = () => resolve([]);
+                } catch(e) {
+                    resolve([]);
+                }
+            });
+        }
+
+        function salvarOpcaoGlobalDB(storeName, valor) {
+            return new Promise((resolve) => {
+                if (!db || !valor || valor.trim() === "") return resolve(false);
+                const tx = db.transaction(storeName, "readwrite");
+                const store = tx.objectStore(storeName);
+                store.put({ nome: valor.trim() });
+                tx.oncomplete = () => resolve(true);
+                tx.onerror = () => resolve(false);
+            });
+        }
+
+        function removerOpcaoGlobalDB(storeName, valor) {
+            return new Promise((resolve) => {
+                if (!db || !valor) return resolve(false);
+                const tx = db.transaction(storeName, "readwrite");
+                const store = tx.objectStore(storeName);
+                store.delete(valor);
+                tx.oncomplete = () => resolve(true);
+                tx.onerror = () => resolve(false);
+            });
+        }
+
+        function preencherSelectGlobal(elementOrId, arrayItens, valorSelecionado = "") {
+            const select = typeof elementOrId === "string" ? document.getElementById(elementOrId) : elementOrId;
+            if (!select) return;
+            
+            select.innerHTML = "";
+            
+            const optVazia = document.createElement("option");
+            optVazia.value = "";
+            optVazia.innerText = "-- Selecione --";
+            select.appendChild(optVazia);
+
+            arrayItens.forEach(item => {
+                const opt = document.createElement("option");
+                opt.value = item;
+                opt.innerText = item;
+                if (item === valorSelecionado) opt.selected = true;
+                select.appendChild(opt);
+            });
+        }
+
+        function openCadastroModal() {
+            document.getElementById('cadastroForm').reset();
+            document.getElementById('formId').value = "";
+            document.getElementById('modalTitle').innerText = "Cadastrar Nova Peça";
+            document.getElementById('btnSalvar').innerText = "Salvar";
+            document.getElementById('formFotosAtuaisContainer').style.display = "none";
+            document.getElementById('fotosAtuaisGrid').innerHTML = "";
+            document.getElementById('formFotos').required = true;
+            document.getElementById('labelFotos').innerText = "Adicionar Fotos (1 a 6) *";
+            
+            document.getElementById('formMedidasLista').innerHTML = "";
+            document.getElementById('formMateriaisLista').innerHTML = "";
+            fotosTemporariasEdicao = [];
+
+            preencherSelectGlobal("formGrupo", nomesGruposExistentes);
+            
+            switchTab('tab-peca');
+            adicionarLinhaMaterial();
+            adicionarLinhaMedida();
+
+            document.getElementById('cadastroModal').classList.add('active');
+        }
+
+        function adicionarLinhaMedida(nome = "", valor = "", unidade = "mm") {
+            const container = document.getElementById('formMedidasLista');
+            const rowId = 'med_row_' + Date.now() + Math.random().toString(36).substr(2, 5);
+
+            const div = document.createElement('div');
+            div.className = 'measurement-row-form';
+            div.id = rowId;
+
+            div.innerHTML = `
+                <select class="med-nome-sel" required></select>
+                <input type="text" class="med-valor-inp" placeholder="Valor" value="${valor}" required>
+                <select class="med-uni-sel">
+                    <option value="mm" ${unidade==='mm'?'selected':''}>mm</option>
+                    <option value="cm" ${unidade==='cm'?'selected':''}>cm</option>
+                    <option value="pol" ${unidade==='pol'?'selected':''}>pol</option>
+                    <option value="un" ${unidade==='un'?'selected':''}>un</option>
+                </select>
+                <button type="button" style="background:none; border:none; color:var(--danger); font-size:1.2rem; cursor:pointer; padding:0 0.3rem;" onclick="document.getElementById('${rowId}').remove()">✕</button>
+            `;
+            container.appendChild(div);
+            
+            const selectComponent = div.querySelector('.med-nome-sel');
+            preencherSelectGlobal(selectComponent, nomesMedidasExistentes, nome);
+
+            const inlineActions = document.createElement('div');
+            inlineActions.style = "grid-column: 1 / span 4; display: flex; gap: 0.5rem; justify-content: flex-start; margin-top: -0.2rem; margin-bottom: 0.2rem;";
+            inlineActions.innerHTML = `
+                <span style="font-size:0.75rem; color:var(--primary); cursor:pointer;" onclick="criarNovaOpcaoGlobal('medida', this)">+ Nova Medida</span>
+                <span style="font-size:0.75rem; color:var(--danger); cursor:pointer;" onclick="abrirDeletarOpcaoGlobal('medida', this)">x Excluir Medida</span>
+            `;
+            div.appendChild(inlineActions);
+        }
+
+        function adicionarLinhaMaterial(nomeMaterial = "") {
+            const container = document.getElementById('formMateriaisLista');
+            const rowId = 'mat_row_' + Date.now() + Math.random().toString(36).substr(2, 5);
+
+            const div = document.createElement('div');
+            div.className = 'material-row-form';
+            div.id = rowId;
+
+            div.innerHTML = `
+                <select class="mat-nome-sel"></select>
+                <button type="button" style="background:none; border:none; color:var(--danger); font-size:1.2rem; cursor:pointer; padding:0 0.3rem;" onclick="document.getElementById('${rowId}').remove()">✕</button>
+            `;
+            container.appendChild(div);
+
+            const selectComponent = div.querySelector('.mat-nome-sel');
+            preencherSelectGlobal(selectComponent, nomesMateriaisExistentes, nomeMaterial);
+
+            const inlineActions = document.createElement('div');
+            inlineActions.style = "grid-column: 1 / span 2; display: flex; gap: 0.5rem; justify-content: flex-start; margin-top: -0.2rem; margin-bottom: 0.2rem;";
+            inlineActions.innerHTML = `
+                <span style="font-size:0.75rem; color:var(--primary); cursor:pointer;" onclick="criarNovaOpcaoGlobal('material', this)">+ Novo Material</span>
+                <span style="font-size:0.75rem; color:var(--danger); cursor:pointer;" onclick="abrirDeletarOpcaoGlobal('material', this)">x Excluir Material</span>
+            `;
+            div.appendChild(inlineActions);
+        }
+
+        async function criarNovaOpcaoGlobal(tipo, elementoDisparador = null) {
+            const termo = prompt(`Digite o nome do novo ${tipo}:`);
+            if (!termo || termo.trim() === "") return;
+
+            let storeName = tipo === 'medida' ? 'nomesMedidas' : (tipo === 'grupo' ? 'nomesGrupos' : 'nomesMateriais');
+            await salvarOpcaoGlobalDB(storeName, termo.trim());
+            
+            if (tipo === 'medida') {
+                nomesMedidasExistentes = await lerOpcoesGlobaisDB(storeName);
+                document.querySelectorAll('.med-nome-sel').forEach(sel => {
+                    const valAtual = sel.value;
+                    preencherSelectGlobal(sel, nomesMedidasExistentes, valAtual);
+                });
+                if (elementoDisparador) {
+                    elementoDisparador.parentElement.parentElement.querySelector('.med-nome-sel').value = termo.trim();
+                }
+            } else if (tipo === 'grupo') {
+                nomesGruposExistentes = await lerOpcoesGlobaisDB(storeName);
+                preencherSelectGlobal("formGrupo", nomesGruposExistentes, termo.trim());
+            } else if (tipo === 'material') {
+                nomesMateriaisExistentes = await lerOpcoesGlobaisDB(storeName);
+                document.querySelectorAll('.mat-nome-sel').forEach(sel => {
+                    const valAtual = sel.value;
+                    preencherSelectGlobal(sel, nomesMateriaisExistentes, valAtual);
+                });
+                if (elementoDisparador) {
+                    elementoDisparador.parentElement.parentElement.querySelector('.mat-nome-sel').value = termo.trim();
+                }
+            }
+        }
+
+        function abrirDeletarOpcaoGlobal(tipo, elementoDisparador = null) {
+            tipoGerenciamentoGlobal = tipo;
+            
+            const modalTitle = document.getElementById('deletarOpcaoModalTitle');
+            const labelAlvo = document.getElementById('deletarOpcaoLabel');
+            
+            let arrayItens = [];
+            if (tipo === 'medida') {
+                modalTitle.innerText = "x Excluir Medida";
+                labelAlvo.innerText = "Selecione a medida que deseja apagar da lista global:";
+                arrayItens = nomesMedidasExistentes;
+            } else if (tipo === 'grupo') {
+                modalTitle.innerText = "x Excluir Grupo";
+                labelAlvo.innerText = "Selecione o grupo que deseja apagar da lista global:";
+                arrayItens = nomesGruposExistentes;
+            } else if (tipo === 'material') {
+                modalTitle.innerText = "x Excluir Material";
+                labelAlvo.innerText = "Selecione o material que deseja apagar da lista global:";
+                arrayItens = nomesMateriaisExistentes;
+            }
+
+            preencherSelectGlobal("deletarSelectAlvo", arrayItens);
+            document.getElementById('deletarOpcaoModal').classList.add('active');
+        }
+
+        function fecharModalDeletarOpcao() {
+            closeModal('deletarOpcaoModal');
+        }
+
+        async function confirmarDeletarOpcaoGlobal() {
+            const valor = document.getElementById('deletarSelectAlvo').value;
+            if (!valor) {
+                fecharModalDeletarOpcao();
+                return;
+            }
+
+            let storeName = tipoGerenciamentoGlobal === 'medida' ? 'nomesMedidas' : (tipoGerenciamentoGlobal === 'grupo' ? 'nomesGrupos' : 'nomesMateriais');
+            await removerOpcaoGlobalDB(storeName, valor);
+
+            if (tipoGerenciamentoGlobal === 'medida') {
+                nomesMedidasExistentes = await lerOpcoesGlobaisDB(storeName);
+                document.querySelectorAll('.med-nome-sel').forEach(sel => {
+                    const valAnterior = sel.value;
+                    preencherSelectGlobal(sel, nomesMedidasExistentes, valAnterior === valor ? "" : valAnterior);
+                });
+            } else if (tipoGerenciamentoGlobal === 'grupo') {
+                nomesGruposExistentes = await lerOpcoesGlobaisDB(storeName);
+                preencherSelectGlobal("formGrupo", nomesGruposExistentes);
+            } else if (tipoGerenciamentoGlobal === 'material') {
+                nomesMateriaisExistentes = await lerOpcoesGlobaisDB(storeName);
+                document.querySelectorAll('.mat-nome-sel').forEach(sel => {
+                    const valAnterior = sel.value;
+                    preencherSelectGlobal(sel, nomesMateriaisExistentes, valAnterior === valor ? "" : valAnterior);
+                });
+            }
+
+            fecharModalDeletarOpcao();
+        }
+
+        function validarFotos(input) {
+            const totalExistentes = fotosTemporariasEdicao.length;
+            const novosArquivos = input.files.length;
+            if (totalExistentes + novosArquivos > 6) {
+                alert("O limite máximo é de 6 imagens por peça.");
+                input.value = "";
+            }
+        }
+
+        function prepararEdicao() {
+            if (pecas.length === 0) return;
+            const peca = pecas[currentIndex];
+
+            document.getElementById('modalTitle').innerText = "Editar Peça";
+            document.getElementById('btnSalvar').innerText = "Atualizar Peça";
+            document.getElementById('formId').value = peca.id;
+            document.getElementById('formNome').value = peca.nome;
+            document.getElementById('formCodigo').value = peca.codigo;
+            document.getElementById('formObservacao').value = peca.observacao || "";
+            document.getElementById('formResponsavel').value = peca.responsavel || "";
+            
+            document.getElementById('formPesoValor').value = (peca.peso && peca.peso.valor) ? peca.peso.valor : "";
+            document.getElementById('formPesoUnidade').value = (peca.peso && peca.peso.unidade) ? peca.peso.unidade : "Kg";
+
+            preencherSelectGlobal("formGrupo", nomesGruposExistentes, peca.grupo || "");
+
+            document.getElementById('formMedidasLista').innerHTML = "";
+            if (peca.medidas && peca.medidas.length > 0) {
+                peca.medidas.forEach(m => adicionarLinhaMedida(m.nome, m.valor, m.unidade));
+            } else {
+                adicionarLinhaMedida();
+            }
+
+            document.getElementById('formMateriaisLista').innerHTML = "";
+            if (peca.materiais && peca.materiais.length > 0) {
+                peca.materiais.forEach(mat => adicionarLinhaMaterial(mat));
+            } else {
+                adicionarLinhaMaterial();
+            }
+
+            fotosTemporariasEdicao = [...(peca.fotos || [])];
+            atualizarGridFotosEdicao();
+
+            document.getElementById('formFotos').value = "";
+            document.getElementById('formFotos').required = false;
+            document.getElementById('labelFotos').innerText = "Adicionar Mais Fotos (Máx 6)";
+
+            switchTab('tab-peca');
+            document.getElementById('cadastroModal').classList.add('active');
+        }
+
+        function atualizarGridFotosEdicao() {
+            const grid = document.getElementById('fotosAtuaisGrid');
+            const container = document.getElementById('formFotosAtuaisContainer');
+            grid.innerHTML = "";
+
+            if (fotosTemporariasEdicao.length === 0) {
+                container.style.display = "none";
+                return;
+            }
+
+            fotosTemporariasEdicao.forEach((foto, idx) => {
+                const item = document.createElement('div');
+                item.className = 'foto-atual-item';
+                item.innerHTML = `
+                    <img src="${foto}">
+                    <button type="button" class="btn-remover-foto" onclick="removerFotoTemporaria(${idx})">REMOVER</button>
+                `;
+                grid.appendChild(item);
+            });
+            container.style.display = "block";
+        }
+
+        function removerFotoTemporaria(idx) {
+            fotosTemporariasEdicao.splice(idx, 1);
+            atualizarGridFotosEdicao();
+        }
+
+        function lerArquivoComoBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = (e) => reject(e);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function salvarPeca(e) {
+            e.preventDefault();
+            if (!db) return;
+
+            const idVal = document.getElementById('formId').value;
+            const nomeVal = document.getElementById('formNome').value.trim();
+            const codigoVal = document.getElementById('formCodigo').value.trim();
+            const grupoVal = document.getElementById('formGrupo').value;
+            const obsVal = document.getElementById('formObservacao').value.trim();
+            const responsavelVal = document.getElementById('formResponsavel').value.trim();
+            
+            const pesoValorVal = document.getElementById('formPesoValor').value;
+            const pesoUnidadeVal = document.getElementById('formPesoUnidade').value;
+
+            if (!nomeVal || !codigoVal || !grupoVal || !responsavelVal) {
+                alert("Por favor preencha todos os campos obrigatórios (*)");
+                return;
+            }
+
+            const medidasColetadas = [];
+            const linhasMedidas = document.querySelectorAll('#formMedidasLista .measurement-row-form');
+            linhasMedidas.forEach(linha => {
+                const n = linha.querySelector('.med-nome-sel').value;
+                const v = linha.querySelector('.med-valor-inp').value.trim();
+                const u = linha.querySelector('.med-uni-sel').value;
+                if (n && v) {
+                    medidasColetadas.push({ nome: n, valor: v, unidade: u });
+                }
+            });
+
+            const materiaisColetados = [];
+            const linhasMateriais = document.querySelectorAll('#formMateriaisLista .material-row-form');
+            linhasMateriais.forEach(linha => {
+                const m = linha.querySelector('.mat-nome-sel').value;
+                if (m && m.trim() !== "") {
+                    materiaisColetados.push(m);
+                }
+            });
+
+            const inputFotos = document.getElementById('formFotos');
+            const novasFotosBase64 = [];
+            if (inputFotos.files && inputFotos.files.length > 0) {
+                for (let i = 0; i < inputFotos.files.length; i++) {
+                    const b64 = await lerArquivoComoBase64(inputFotos.files[i]);
+                    novasFotosBase64.push(b64);
+                }
+            }
+
+            const fotosFinais = [...fotosTemporariasEdicao, ...novasFotosBase64];
+            if (fotosFinais.length === 0) {
+                alert("É obrigatório anexar pelo menos 1 foto para a peça.");
+                switchTab('tab-imagens');
+                return;
+            }
+
+            const dataCadastroVal = new Date().toLocaleString('pt-BR');
+
+            const registroPeca = {
+                nome: nomeVal,
+                codigo: codigoVal,
+                grupo: grupoVal,
+                observacao: obsVal,
+                medidas: medidasColetadas,
+                materiais: materiaisColetados,
+                peso: {
+                    valor: pesoValorVal ? parseFloat(pesoValorVal) : "",
+                    unidade: pesoUnidadeVal
+                },
+                fotos: fotosFinais,
+                responsavel: responsavelVal,
+                dataCadastro: dataCadastroVal
+            };
+
+            if (idVal) {
+                registroPeca.id = parseInt(idVal);
+            }
+
+            const tx = db.transaction("pecas", "readwrite");
+            const store = tx.objectStore("pecas");
+
+            try {
+                const requestSalvar = store.put(registroPeca);
+                requestSalvar.onsuccess = () => {
+                    tx.oncomplete = () => {
+                        closeModal('cadastroModal');
+                        if (!idVal) currentIndex = pecas.length; 
+                        carregarPecas();
+                    };
+                };
+                requestSalvar.onerror = (err) => {
+                    if (err.target.error && err.target.error.name === "ConstraintError") {
+                        alert("Erro: Já existe uma peça cadastrada com este mesmo Código.");
+                    } else {
+                        alert("Erro ao tentar salvar o registro da peça.");
+                    }
+                };
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        function deletarPecaAtual() {
+            if (pecas.length === 0) return;
+            const peca = pecas[currentIndex];
+            if (!confirm(`Deseja realmente excluir permanentemente a peça: "${peca.nome}" (Código: ${peca.codigo})?`)) return;
+
+            const tx = db.transaction("pecas", "readwrite");
+            const store = tx.objectStore("pecas");
+            store.delete(peca.id);
+
+            tx.oncomplete = () => {
+                if (currentIndex > 0) currentIndex--;
+                carregarPecas();
+            };
+        }
+
+        function atualizarMetadadosBackupLabels() {
+            const bkp = localStorage.getItem("bkp_ultimo_export") || "--";
+            const res = localStorage.getItem("bkp_ultimo_import") || "--";
+            document.getElementById('lblUltimoBackup').innerText = bkp;
+            document.getElementById('lblUltimoRestauro').innerText = res;
+        }
+
+        function exportarDadosSistema() {
+            if (pecas.length === 0 && nomesMedidasExistentes.length === 0 && nomesGruposExistentes.length === 0 && nomesMateriaisExistentes.length === 0) {
+                alert("Não há dados cadastrados para exportar no momento.");
+                return;
+            }
+            const dadosCompletos = {
+                versao: "2.0",
+                dataGeracao: new Date().toISOString(),
+                pecas: pecas,
+                nomesMedidas: nomesMedidasExistentes,
+                nomesGrupos: nomesGruposExistentes,
+                nomesMateriais: nomesMateriaisExistentes
+            };
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dadosCompletos));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `Backup_Catalogo_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+
+            const agoraStr = new Date().toLocaleString('pt-BR');
+            localStorage.setItem("bkp_ultimo_export", agoraStr);
+            atualizarMetadadosBackupLabels();
+        }
+
+        function importarDadosSistema(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    // 1. Tenta decodificar o JSON em memória primeiro
+                    const dados = JSON.parse(e.target.result);
+
+                    // 2. Validação estrutural de compatibilidade de chaves
+                    if (!dados || typeof dados !== 'object' || !dados.pecas || !dados.nomesMedidas || !dados.nomesGrupos || !dados.nomesMateriais) {
+                        throw new Error("O arquivo escolhido não possui a estrutura padrão esperada deste catálogo técnico.");
+                    }
+
+                    if (!Array.isArray(dados.pecas) || !Array.isArray(dados.nomesMedidas)) {
+                        throw new Error("Os dados internos estão corrompidos ou em formato incorreto.");
+                    }
+
+                    // 3. Avisa e colhe confirmação definitiva do usuário após sucesso do teste de integridade
+                    const confirmacao = confirm(`✅ Backup validado com sucesso!\nEstrutura localizada: ${dados.pecas.length} peças prontas para restauração.\n\n⚠️ ATENÇÃO: Carregar este arquivo apagará e substituirá TODOS os registros atuais do dispositivo. Deseja continuar?`);
+                    if (!confirmacao) {
+                        input.value = "";
+                        return;
+                    }
+
+                    // 4. Executa a limpeza completa apenas agora que o arquivo se provou compatível e autorizado
+                    await executarLimpezaBancoDados();
+
+                    // 5. Salva em lote os novos dados limpos e convertidos
+                    const tx = db.transaction(["pecas", "nomesMedidas", "nomesGrupos", "nomesMateriais"], "readwrite");
+                    
+                    const storePecas = tx.objectStore("pecas");
+                    dados.pecas.forEach(p => {
+                        if (p.id) delete p.id; // Garante autoincremento linear limpo no banco local
+                        storePecas.put(p);
+                    });
+
+                    const storeM = tx.objectStore("nomesMedidas");
+                    dados.nomesMedidas.forEach(m => storeM.put({ nome: m }));
+
+                    const storeG = tx.objectStore("nomesGrupos");
+                    dados.nomesGrupos.forEach(g => storeG.put({ nome: g }));
+
+                    const storeMat = tx.objectStore("nomesMateriais");
+                    dados.nomesMateriais.forEach(mat => storeMat.put({ nome: mat }));
+
+                    tx.oncomplete = () => {
+                        alert("🎉 Dados restaurados com sucesso!");
+                        const agoraStr = new Date().toLocaleString('pt-BR');
+                        localStorage.setItem("bkp_ultimo_import", agoraStr);
+                        
+                        currentIndex = 0;
+                        currentPhotoIndex = 0;
+                        
+                        carregarPecas();
+                        atualizarMetadadosBackupLabels();
+                        closeModal('backupModal');
+                    };
+
+                    tx.onerror = (err) => {
+                        console.error(err);
+                        alert("Erro crítico interno durante a gravação dos lotes no banco IndexedDB.");
+                    };
+
+                } catch(err) {
+                    console.error(err);
+                    alert("❌ Falha de Compatibilidade:\n" + err.message);
+                } finally {
+                    input.value = "";
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function executarLimpezaBancoDados() {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(["pecas", "nomesMedidas", "nomesGrupos", "nomesMateriais"], "readwrite");
+                tx.objectStore("pecas").clear();
+                tx.objectStore("nomesMedidas").clear();
+                tx.objectStore("nomesGrupos").clear();
+                tx.objectStore("nomesMateriais").clear();
+
+                tx.oncomplete = () => resolve(true);
+                tx.onerror = (e) => reject(e);
+            });
+        }
+
+        async function limparTodoOSistemaComAviso() {
+            const confirmacao1 = confirm("⚠️ Alerta Crítico:\nVocê tem certeza absoluta que deseja apagar TODAS as peças e configurações cadastradas do dispositivo?");
+            if (!confirmacao1) return;
+
+            const confirmacao2 = prompt("Para confirmar a exclusão permanente de todo o sistema, digite o termo abaixo:\nEXCLUIR");
+            if (confirmacao2 !== "EXCLUIR" && confirmacao2 !== "excluir") {
+                alert("Confirmação inválida. Operação abortada.");
+                return;
+            }
+
+            try {
+                await executarLimpezaBancoDados();
+                alert("O sistema foi totalmente resetado para as configurações de fábrica.");
+                currentIndex = 0;
+                currentPhotoIndex = 0;
+                carregarPecas();
+                closeModal('backupModal');
+            } catch (err) {
+                console.error(err);
+                alert("Erro ao tentar limpar o banco de dados.");
+            }
+        }
+
+        window.onload = initDB;
+    </script>
+</body>
+</html>
