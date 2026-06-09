@@ -1374,9 +1374,19 @@
 
 
 
+	// Variável de controle para destruir instâncias antigas e evitar o travamento após o primeiro arrasto
+	let sortableInstance = null;
+
 	function renderizarPainelDeFotosExistentesParaEdicao() {
 		const container = document.getElementById('formFotosAtuaisContainer');
 		const grid = document.getElementById('fotosAtuaisGrid');
+
+		// Se já existir uma instância ativa do SortableJS rodando, nós a destruímos com segurança
+		if (sortableInstance) {
+			sortableInstance.destroy();
+			sortableInstance = null;
+		}
+
 		grid.innerHTML = '';
 
 		if (fotosTemporariasEdicao.length === 0) {
@@ -1391,7 +1401,7 @@
 			box.className = 'foto-atual-item';
 			box.dataset.id = index;
 			
-			// Adicionado estilos inline para impedir que o Android tente "selecionar" ou "salvar" a imagem ao segurar com o dedo
+			// Estilos para desativar a seleção fantasma e focar estritamente no arrasto físico do bloco
 			box.innerHTML = `
 				<img src="${srcBase64}" style="-webkit-user-drag: none; user-drag: none; pointer-events: none; user-select: none; -webkit-user-select: none;">
 				<button type="button" class="btn-remover-foto" onclick="removerFotoTemporariaDaEdicao(${index})">REMOVER</button>
@@ -1399,13 +1409,13 @@
 			grid.appendChild(box);
 		});
 
-		// Inicializa o SortableJS com Fallback nativo para destravar o toque no Android
+		// Cria a nova instância limpa do SortableJS habilitando múltiplos arrastos seguidos
 		if (window.Sortable) {
-			Sortable.create(grid, {
+			sortableInstance = Sortable.create(grid, {
 				animation: 150,
 				ghostClass: 'drag-over',
-				forceFallback: true,     // Cria o elemento virtual suave para mover no Android
-				fallbackTolerance: 3,    // Evita conflito com o clique do botão de remoção
+				forceFallback: true,     // Resolve o bloqueio CSS do Android criando o clone virtual
+				fallbackTolerance: 3,    // Evita falsos disparos ao apenas clicar em REMOVER
 				onEnd: function () {
 					const novaOrdem = [];
 					grid.querySelectorAll('.foto-atual-item').forEach(box => {
@@ -1413,6 +1423,8 @@
 						novaOrdem.push(fotosTemporariasEdicao[idxAntigo]);
 					});
 					fotosTemporariasEdicao = novaOrdem;
+					
+					// Recarrega o painel com a nova ordem sem travar as interações futuras
 					renderizarPainelDeFotosExistentesParaEdicao();
 				}
 			});
