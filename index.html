@@ -1390,8 +1390,10 @@
 			const box = document.createElement('div');
 			box.className = 'foto-atual-item';
 			box.dataset.id = index;
+			
+			// Adicionado estilos inline para impedir que o Android tente "selecionar" ou "salvar" a imagem ao segurar com o dedo
 			box.innerHTML = `
-				<img src="${srcBase64}">
+				<img src="${srcBase64}" style="-webkit-user-drag: none; user-drag: none; pointer-events: none; user-select: none; -webkit-user-select: none;">
 				<button type="button" class="btn-remover-foto" onclick="removerFotoTemporariaDaEdicao(${index})">REMOVER</button>
 			`;
 			grid.appendChild(box);
@@ -1402,8 +1404,8 @@
 			Sortable.create(grid, {
 				animation: 150,
 				ghostClass: 'drag-over',
-				forceFallback: true,     // <== ISSO DESTREVA: Cria um elemento virtual para mover suavemente no Android
-				fallbackTolerance: 3,    // Evita disparar o arrasto caso o usuário dê apenas um clique rápido para remover
+				forceFallback: true,     // Cria o elemento virtual suave para mover no Android
+				fallbackTolerance: 3,    // Evita conflito com o clique do botão de remoção
 				onEnd: function () {
 					const novaOrdem = [];
 					grid.querySelectorAll('.foto-atual-item').forEach(box => {
