@@ -1367,40 +1367,112 @@
         let touchDraggedItemIndex = -1;
 
         function renderizarPainelDeFotosExistentesParaEdicao() {
-            const container = document.getElementById('formFotosAtuaisContainer');
-            const grid = document.getElementById('fotosAtuaisGrid');
-            grid.innerHTML = '';
+    const grid = document.getElementById('fotosAtuaisGrid');
+    grid.innerHTML = '';
 
-            if (fotosTemporariasEdicao.length === 0) {
-                container.style.display = 'none';
-                return;
+    if (fotosTemporariasEdicao.length === 0) {
+        document.getElementById('formFotosAtuaisContainer').style.display = 'none';
+        return;
+    }
+
+    document.getElementById('formFotosAtuaisContainer').style.display = 'block';
+
+    fotosTemporariasEdicao.forEach((foto, index) => {
+        const div = document.createElement('div');
+        div.className = 'foto-atual-item';
+        div.setAttribute('data-index', index);
+        div.innerHTML = `
+            <img src="${foto}" alt="Foto ${index + 1}">
+            <button type="button" class="btn-remover-foto" onclick="removerFotoEdicao(${index})">Remover</button>
+        `;
+
+        // ==== COMPATIBILIDADE PC (MOUSE - DRAG & DROP NATÍVO) ====
+        div.draggable = true;
+        div.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', index);
+            div.style.opacity = '0.4';
+        });
+        
+        div.addEventListener('dragend', () => {
+            div.style.opacity = '1';
+            grid.querySelectorAll('.foto-atual-item').forEach(i => i.classList.remove('drag-over'));
+        });
+        
+        div.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            div.classList.add('drag-over');
+        });
+        
+        div.addEventListener('dragleave', () => {
+            div.classList.remove('remove'); // mantém compatibilidade de estilos
+            div.classList.remove('drag-over');
+        });
+        
+        div.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
+            const toIndex = index;
+            if (fromIndex !== toIndex) {
+                const itemMovido = fotosTemporariasEdicao.splice(fromIndex, 1)[0];
+                fotosTemporariasEdicao.splice(toIndex, 0, itemMovido);
+                renderizarPainelDeFotosExistentesParaEdicao();
             }
+        });
 
-            container.style.display = 'block';
-            fotosTemporariasEdicao.forEach((srcBase64, index) => {
-                const box = document.createElement('div');
-                box.className = 'foto-atual-item';
-                box.draggable = true;
-                box.dataset.index = index;
+        // ==== COMPATIBILIDADE SMARTPHONE (ANDROID/TOUCH - CORREÇÃO DO TRAVAMENTO) ====
+        let touchStartIndex = null;
+        
+        div.addEventListener('touchstart', (e) => {
+            touchStartIndex = index;
+            div.style.transform = 'scale(1.05)';
+            div.style.zIndex = '10';
+        }, { passive: true });
 
-                box.innerHTML = `
-                    <img src="${srcBase64}">
-                    <button type="button" class="btn-remover-foto" onclick="removerFotoTemporariaDaEdicao(${index})">REMOVER</button>
-                `;
+        div.addEventListener('touchmove', (e) => {
+            if (touchStartIndex === null) return;
+            
+            const touch = e.touches[0];
+            // Identifica o elemento sob o dedo do usuário dinamicamente em tempo de toque
+            const elementoSobODedo = document.elementFromPoint(touch.clientX, touch.clientY);
+            
+            // Remove realces visuais antigos das outras posições da grade
+            grid.querySelectorAll('.foto-atual-item').forEach(i => i.classList.remove('drag-over'));
+            
+            if (elementoSobODedo) {
+                const itemAlvo = elementoSobODedo.closest('.foto-atual-item');
+                if (itemAlvo && itemAlvo !== div) {
+                    itemAlvo.classList.add('drag-over');
+                }
+            }
+        });
 
-                box.addEventListener('dragstart', handleDragStart);
-                box.addEventListener('dragover', handleDragOver);
-                box.addEventListener('dragleave', handleDragLeave);
-                box.addEventListener('drop', handleDrop);
-                box.addEventListener('dragend', handleDragEnd);
+        div.addEventListener('touchend', (e) => {
+            div.style.transform = '';
+            div.style.zIndex = '';
+            
+            const touch = e.changedTouches[0];
+            const elementoSobODedo = document.elementFromPoint(touch.clientX, touch.clientY);
+            
+            grid.querySelectorAll('.foto-atual-item').forEach(i => i.classList.remove('drag-over'));
 
-                box.addEventListener('touchstart', handleTouchStart, {passive: false});
-                box.addEventListener('touchmove', handleTouchMove, {passive: false});
-                box.addEventListener('touchend', handleTouchEnd);
+            if (elementoSobODedo) {
+                const itemAlvo = elementoSobODedo.closest('.foto-atual-item');
+                if (itemAlvo) {
+                    const touchEndIndex = parseInt(itemAlvo.getAttribute('data-index'), 10);
+                    if (touchStartIndex !== null && touchStartIndex !== touchEndIndex) {
+                        // Modifica o vetor temporário mantendo intacta a lógica de persistência do PWA
+                        const itemMovido = fotosTemporariasEdicao.splice(touchStartIndex, 1)[0];
+                        fotosTemporariasEdicao.splice(touchEndIndex, 0, itemMovido);
+                        renderizarPainelDeFotosExistentesParaEdicao();
+                    }
+                }
+            }
+            touchStartIndex = null;
+        });
 
-                grid.appendChild(box);
-            });
-        }
+        grid.appendChild(div);
+    });
+}
 
         function removerFotoTemporariaDaEdicao(index) {
             fotosTemporariasEdicao.splice(index, 1);
