@@ -1112,10 +1112,7 @@
             if (peca.observacao && peca.observacao.trim() !== "") {
                 msg += `*Observações:* ${peca.observacao}\n\n`;
             }
-            const txtHist = obterTextoHistorico(peca);
-            if (txtHist) {
-                msg += `_${txtHist}_\n\n`;
-            }
+
             msg += `_Enviado via Catálogo Técnico_`;
 
             let shareData = {
@@ -1976,9 +1973,7 @@
                     htmlContent += `\n\n<strong>Observações:</strong> ${peca.observacao}`;
                 }
                 const hist = obterTextoHistorico(peca);
-                if (hist) {
-                    htmlContent += `\n\n<strong>Histórico:</strong> ${hist}`;
-                }
+
                 htmlContent += `</pre>
                     </div>
                 </div>`;
