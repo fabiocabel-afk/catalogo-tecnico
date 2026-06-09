@@ -7,6 +7,7 @@
     <link class="favicon-link" rel="icon" type="image/png" href="./favicon.png">
     <link class="apple-touch-icon" href="./favicon.png">
     <link rel="manifest" href="./manifest.json">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <style>
         :root {
             --primary: #2563eb;
@@ -604,9 +605,11 @@
             cursor: grabbing;
         }
 
+        /* Elemento fantasma/sombra ao arrastar */
         .foto-atual-item.drag-over {
             border: 2px dashed var(--primary);
-            opacity: 0.6;
+            opacity: 0.4;
+            background: #cbd5e1;
         }
 
         .foto-atual-item img {
@@ -880,8 +883,8 @@
                 </div>
                 <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4;">Nota: Esta ação remove o nome da lista de sugestões. (Medidas já salvas nas peças existentes não serão alteradas).</p>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem;">
-                    <button type="button" class="btn-secondary" style="padding:0.65rem; border:none; border-radius:6px; font-weight:600; cursor:pointer;" onclick="fecharModalDeletarOpcao()">Cancelar</button>
-                    <button type="button" style="padding:0.65rem; background: var(--danger); color:white; border:none; border-radius:6px; font-weight:600; cursor:pointer;" onclick="confirmarDeletarMedidaGlobal()">Excluir Opção</button>
+                    <button type="button" class="btn-secondary" style="padding:0.65rem; border:none; border-radius:6px; font-weight:600; cursor:pointer;" onclick="fecharModalDeletarOpcao()">Voltar</button>
+                    <button type="button" class="btn" style="background:var(--danger); padding:0.65rem; border:none; border-radius:6px; font-weight:600; cursor:pointer;" onclick="confirmarDeletarMedidaGlobal()">Confirmar Exclusão</button>
                 </div>
             </div>
         </div>
@@ -890,67 +893,64 @@
     <div class="modal" id="cadastroModal">
         <div class="modal-content">
             <div class="modal-fixed-header">
-                <h3 id="modalTitle" style="font-size: 1.1rem;">Cadastrar Nova Peça</h3>
+                <h3 id="cadastroModalTitle" style="font-size:1.1rem;">Novo Registro</h3>
                 <div class="form-tabs">
-                    <button type="button" class="form-tab-btn active" onclick="switchTab('tab-peca')">Peça</button>
-                    <button type="button" class="form-tab-btn" onclick="switchTab('tab-imagens')">Imagens</button>
-                    <button type="button" class="form-tab-btn" onclick="switchTab('tab-medidas')">Medidas</button>
-                    <button type="button" class="form-tab-btn" onclick="switchTab('tab-informacoes')">Info</button>
+                    <button type="button" class="form-tab-btn active" id="btn-tab-peca" onclick="switchTab('tab-peca')">Dados da Peça</button>
+                    <button type="button" class="form-tab-btn" id="btn-tab-medidas" onclick="switchTab('tab-medidas')">Medidas Técnicas</button>
+                    <button type="button" class="form-tab-btn" id="btn-tab-fotos" onclick="switchTab('tab-fotos')">Fotos</button>
                 </div>
             </div>
 
-            <form id="cadastroForm" onsubmit="salvarPeca(event)" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+            <form id="cadastroForm" onsubmit="salvarPeca(event)" autocomplete="off" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
                 <input type="hidden" id="formId">
+                
                 <div class="cadastro-form-body">
                     
                     <div class="form-tab-content active" id="tab-peca">
                         <div class="form-group">
-                            <label>Nome da Peça *</label>
-                            <input type="text" id="formNome" required>
+                            <label for="formNome">Nome da Peça *</label>
+                            <input type="text" id="formNome" required placeholder="Ex: Porca Sextavada M16">
                         </div>
                         <div class="form-group">
-                            <label>Código da Peça *</label>
-                            <input type="text" id="formCodigo" required>
-                        </div>
-                    </div>
-
-                    <div class="form-tab-content" id="tab-imagens">
-                        <div class="form-group" id="formFotosAtuaisContainer" style="display: none;">
-                            <label style="display: flex; justify-content: space-between; align-items: baseline;">
-                                <span>Painel de Fotos</span>
-                                <span style="font-size: 0.7rem; font-weight: normal; color: var(--text-secondary);">Segure e arraste para ordenar</span>
-                            </label>
-                            <div class="fotos-atuais-grid" id="fotosAtuaisGrid"></div>
+                            <label for="formCodigo">Código Interno / SKU *</label>
+                            <input type="text" id="formCodigo" required placeholder="Ex: PR-16-002">
                         </div>
                         <div class="form-group">
-                            <label id="labelFotos">Adicionar Fotos (Máx 6) *</label>
-                            <input type="file" id="formFotos" accept="image/*" multiple onchange="processarNovasFotos(this)">
+                            <label for="formObservacao">Observações Adicionais</label>
+                            <textarea id="formObservacao" rows="3" placeholder="Insira detalhes sobre aplicação, rosca, material..."></textarea>
                         </div>
                     </div>
 
                     <div class="form-tab-content" id="tab-medidas">
-                        <div class="form-group">
-                            <label>Medidas da Peça</label>
-                            <div id="formMedidasLista" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
-                            <button type="button" class="btn-secondary" style="margin-top:0.5rem; padding:0.6rem; border:none; border-radius:6px; font-weight:600; cursor:pointer;" onclick="adicionarLinhaMedida()">＋ Adicionar Medida</button>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.2rem;">
+                            <label style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 500;">Medidas Cadastradas</label>
+                            <button type="button" class="btn" style="padding: 0.35rem 0.7rem; font-size: 0.75rem; border-radius: 6px;" onclick="adicionarLinhaMedida()">+ Adicionar Linha</button>
                         </div>
+                        <div id="formMedidasLista" style="display: flex; flex-direction: column; gap: 0.6rem;"></div>
                     </div>
 
-                    <div class="form-tab-content" id="tab-informacoes">
+                    <div class="form-tab-content" id="tab-fotos">
                         <div class="form-group">
-                            <label>Observações (Máx 200 caract.)</label>
-                            <textarea id="formObservacao" maxlength="200" rows="4"></textarea>
+                            <label>Adicionar Novas Fotos (Máximo 6 total)</label>
+                            <button type="button" class="btn" style="background:#475569; padding:0.65rem;" onclick="document.getElementById('formFileInput').click()">📸 Selecionar ou Tirar Foto</button>
+                            <input type="file" id="formFileInput" accept="image/*" multiple style="display: none;" onchange="processarNovasFotos(this)">
                         </div>
-                        <div class="form-group">
-                            <label>Responsável pelas Medidas *</label>
-                            <input type="text" id="formResponsavel" required>
+
+                        <div class="form-group" id="formFotosAtuaisContainer" style="display: none; margin-top: 0.5rem;">
+                            <label>Fotos Atuais (Arraste para reordenar)</label>
+                            <div class="fotos-atuais-grid" id="fotosAtuaisGrid"></div>
                         </div>
+
                         <div class="form-group" id="formHistoricoContainer" style="display: none; margin-top: 0.5rem;">
                             <label>Histórico do Registro</label>
                             <div id="formHistoricoTexto" style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); background: #f1f5f9; padding: 0.65rem; border-radius: 6px; border: 1px solid var(--border);"></div>
                         </div>
+                        
+                        <div class="form-group" style="margin-top: auto; padding-top: 0.5rem;">
+                            <label for="formResponsavel">Medidas Fornecidas por *</label>
+                            <input type="text" id="formResponsavel" placeholder="Nome do Técnico ou Setor" required>
+                        </div>
                     </div>
-
                 </div>
 
                 <div class="modal-footer-buttons">
@@ -995,6 +995,7 @@
         let fotosTemporariasEdicao = [];
         let selectDisparadorOriginal = null;
         let estaAnimandoPeca = false;
+        let sortableInstance = null; // Instância do SortableJS
 
         function toggleMenu() {
             document.getElementById('menuDropdown').classList.toggle('active');
@@ -1012,56 +1013,24 @@
             document.getElementById('menuDropdown').classList.remove('active');
             if (opcao === 'buscar') openSearchModal();
             else if (opcao === 'text') openListModal();
-            else if (opcao === 'exportar_pdf') exportarCatalogoPDF();
+            else if (opcao === 'exportar_pdf') imprimirCatalogoLocal();
             else if (opcao === 'backup') openBackupModal();
-            else if (opcao === 'novo') openCadastroModal();
+            else if (opcao === 'novo') openCadastroModalNovo();
             else if (opcao === 'compartilhar') compartilharPecaAtual();
-            else if (opcao === 'editar') prepararEdicao();
+            else if (opcao === 'editar') openCadastroModalEditar();
             else if (opcao === 'excluir') deletarPecaAtual();
         }
 
-        function switchTab(tabId) {
-            const tabButtons = document.querySelectorAll('.form-tab-btn');
-            const tabContents = document.querySelectorAll('.form-tab-content');
-            
-            tabButtons.forEach(btn => {
-                const target = btn.getAttribute('onclick');
-                if (target && target.includes(tabId)) {
-                    btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
-                }
-            });
-
-            tabContents.forEach(content => {
-                if (content.id === tabId) {
-                    content.classList.add('active');
-                } else {
-                    content.classList.remove('active');
-                }
-            });
+        function carregarPecas() {
+            const tx = db.transaction("pecas", "readonly");
+            const store = tx.objectStore("pecas");
+            const request = store.getAll();
+            request.onsuccess = () => {
+                pecas = request.result || [];
+                if (currentIndex >= pecas.length) currentIndex = Math.max(0, pecas.length - 1);
+                exibirPecaAtual();
+            };
         }
-
-        function formatarDataHora(dataString) {
-            if (!dataString) return "";
-            const d = new Date(dataString);
-            const dia = String(d.getDate()).padStart(2, '0');
-            const mes = String(d.getMonth() + 1).padStart(2, '0');
-            const ano = d.getFullYear();
-            const hora = String(d.getHours()).padStart(2, '0');
-            const min = String(d.getMinutes()).padStart(2, '0');
-            return `${dia}/${mes}/${ano} ${hora}:${min}`;
-        }
-
-        function obterTextoHistorico(peca) {
-    		if (!peca) return "";
-    		if (peca.dataAtualizacao) {
-        		return formatarDataHora(peca.dataAtualizacao);
-    		} else if (peca.dataCadastro) {
-        		return formatarDataHora(peca.dataCadastro);
-    		}
-    		return "";
-	}
 
         function resetarVisualizacaoVazia() {
             document.getElementById('viewNome').innerText = "Nenhuma peça cadastrada";
@@ -1085,7 +1054,6 @@
             document.getElementById('menuPecaActions').style.display = "flex";
             document.getElementById('infoIconBtn').style.display = "flex";
             document.getElementById('navPieceCounter').innerText = `${currentIndex + 1} / ${pecas.length}`;
-            
             atualizarSliderFotos(peca.fotos);
             
             const tbody = document.getElementById('measurementsTableBody');
@@ -1112,14 +1080,9 @@
             if (peca.observacao && peca.observacao.trim() !== "") {
                 msg += `*Observações:* ${peca.observacao}\n\n`;
             }
-
             msg += `_Enviado via Catálogo Técnico_`;
 
-            let shareData = {
-                title: `Dados da Peça - ${peca.codigo}`,
-                text: msg
-            };
-
+            let shareData = { title: `Dados da Peça - ${peca.codigo}`, text: msg };
             if (navigator.canShare && peca.fotos && peca.fotos.length > 0) {
                 try {
                     const blob = await fetch(peca.fotos[0]).then(r => r.blob());
@@ -1131,11 +1094,8 @@
                     console.log("Erro ao processar imagem para compartilhamento", e);
                 }
             }
-
             if (navigator.share) {
                 navigator.share(shareData).catch(err => console.log(err));
-            } else {
-                alert("O compartilhamento não é suportado neste navegador.");
             }
         }
 
@@ -1144,44 +1104,37 @@
             const dotsContainer = document.getElementById('dotsContainer');
             slider.innerHTML = '';
             dotsContainer.innerHTML = '';
-
+            
             if (!fotosArray || fotosArray.length === 0) {
-                slider.innerHTML = `<div class="slide"><div class="no-image">Nenhuma foto anexada</div></div>`;
+                slider.innerHTML = `<div class="slide"><span class="no-image">Nenhuma Foto Cadastrada</span></div>`;
                 return;
             }
-
-            fotosArray.forEach((foto) => {
+            fotosArray.forEach(f => {
                 const div = document.createElement('div');
                 div.className = 'slide';
-                div.innerHTML = `<img src="${foto}" alt="Foto da peça">`;
+                div.innerHTML = `<img src="${f}" alt="Foto">`;
                 slider.appendChild(div);
             });
-
             if (fotosArray.length > 1) {
-                fotosArray.forEach((_, idx) => {
+                for (let i = 0; i < fotosArray.length; i++) {
                     const dot = document.createElement('div');
-                    dot.className = `dot ${idx === 0 ? 'active' : ''}`;
+                    dot.className = 'dot' + (i === 0 ? ' active' : '');
                     dotsContainer.appendChild(dot);
-                });
+                }
             }
-
             slider.style.transform = `translateX(0%)`;
-            currentPhotoIndex = 0;
-            configurarGestosTouchSlider();
         }
 
         function mudarFoto(direcao) {
             const peca = pecas[currentIndex];
             if (!peca || !peca.fotos || peca.fotos.length <= 1) return;
-
-            currentPhotoIndex += direcao;
-            if (currentPhotoIndex < 0) currentPhotoIndex = peca.fotos.length - 1;
-            if (currentPhotoIndex >= peca.fotos.length) currentPhotoIndex = 0;
-
-            const slider = document.getElementById('imageSlider');
-            slider.style.transform = `translateX(-${currentPhotoIndex * 100}%)`;
-
-            const dots = document.querySelectorAll('.dots-container .dot');
+            let novoIndex = currentPhotoIndex + direcao;
+            if (novoIndex < 0) novoIndex = peca.fotos.length - 1;
+            if (novoIndex >= peca.fotos.length) novoIndex = 0;
+            currentPhotoIndex = novoIndex;
+            document.getElementById('imageSlider').style.transform = `translateX(-${currentPhotoIndex * 100}%)`;
+            
+            const dots = document.querySelectorAll('#dotsContainer .dot');
             dots.forEach((dot, idx) => {
                 dot.classList.toggle('active', idx === currentPhotoIndex);
             });
@@ -1192,7 +1145,6 @@
             let novoIndex = currentIndex + direcao;
             if (novoIndex < 0) novoIndex = pecas.length - 1;
             if (novoIndex >= pecas.length) novoIndex = 0;
-
             currentIndex = novoIndex;
             currentPhotoIndex = 0;
             exibirPecaAtual();
@@ -1212,37 +1164,37 @@
                 document.getElementById('formHistoricoTexto').innerText = '';
                 fotosTemporariasEdicao = [];
                 selectDisparadorOriginal = null;
+                if (sortableInstance) {
+                    sortableInstance.destroy();
+                    sortableInstance = null;
+                }
             }
         }
 
-    function openInfoModal() {
-        if (pecas.length === 0) return;
-        const peca = pecas[currentIndex];
-        document.getElementById('infoModalTitle').innerText = peca.nome;
-    
-        if (peca.observacao && peca.observacao.trim() !== "") {
-            document.getElementById('infoObsContainer').style.display = "block";
-            document.getElementById('infoObservacaoText').innerText = peca.observacao;
-        } else {
-            document.getElementById('infoObsContainer').style.display = "none";
+        function openInfoModal() {
+            if (pecas.length === 0) return;
+            const peca = pecas[currentIndex];
+            document.getElementById('infoModalTitle').innerText = peca.nome;
+            if (peca.observacao && peca.observacao.trim() !== "") {
+                document.getElementById('infoObsContainer').style.display = "block";
+                document.getElementById('infoObservacaoText').innerText = peca.observacao;
+            } else {
+                document.getElementById('infoObsContainer').style.display = "none";
+            }
+            document.getElementById('infoMetaText').innerText = peca.responsavel || "Não informado";
+            
+            const histText = obterTextoHistorico(peca);
+            const elCardHist = document.getElementById('infoDataHistoricoContainer');
+            const elTextHist = document.getElementById('infoDataHistoricoText');
+            if (histText) {
+                elCardHist.style.display = "block";
+                elTextHist.innerText = histText;
+            } else {
+                elCardHist.style.display = "none";
+                elTextHist.innerText = "";
+            }
+            openModal('infoModal');
         }
-    
-        document.getElementById('infoMetaText').innerText = peca.responsavel || "Não informado";
-    
-        const histText = obterTextoHistorico(peca);
-        const elCardHist = document.getElementById('infoDataHistoricoContainer');
-        const elTextHist = document.getElementById('infoDataHistoricoText');
-    
-        if (histText) {
-            elCardHist.style.display = "block";
-            elTextHist.innerText = histText;
-        } else {
-            elCardHist.style.display = "none";
-            elTextHist.innerText = "";
-        }
-    
-        openModal('infoModal');
-    }
 
         function openSearchModal() {
             document.getElementById('searchInput').value = '';
@@ -1255,26 +1207,20 @@
             const query = document.getElementById('searchInput').value.toLowerCase().trim();
             const resultsContainer = document.getElementById('searchResults');
             resultsContainer.innerHTML = '';
-
             if (query === '') {
                 resultsContainer.style.display = 'none';
                 return;
             }
-
-            const filtradas = pecas.filter(p => 
-                p.nome.toLowerCase().includes(query) || 
-                p.codigo.toLowerCase().includes(query)
-            );
-
+            const filtradas = pecas.filter(p => p.nome.toLowerCase().includes(query) || p.codigo.toLowerCase().includes(query));
             if (filtradas.length === 0) {
                 resultsContainer.innerHTML = `<div style="padding: 0.75rem; color: var(--text-secondary); font-size:0.9rem;">Nenhum resultado encontrado</div>`;
             } else {
                 filtradas.forEach(p => {
                     const item = document.createElement('div');
                     item.className = 'search-item';
-                    item.innerHTML = `<strong>${p.codigo}</strong> - ${p.nome}`;
+                    item.innerText = `${p.nome} (${p.codigo})`;
                     item.onclick = () => {
-                        currentIndex = pecas.findIndex(itemPeca => itemPeca.id === p.id);
+                        currentIndex = pecas.indexOf(p);
                         currentPhotoIndex = 0;
                         exibirPecaAtual();
                         closeModal('searchModal');
@@ -1288,17 +1234,15 @@
         function openListModal() {
             const container = document.getElementById('listModalResults');
             container.innerHTML = '';
-
             if (pecas.length === 0) {
-                container.innerHTML = `<div style="color: var(--text-secondary); text-align: center; padding: 2rem;">Nenhuma peça cadastrada no dispositivo.</div>`;
+                container.innerHTML = `<div style="padding: 1rem; color: var(--text-secondary); text-align:center;">Nenhuma peça cadastrada</div>`;
             } else {
-                const ordenadas = [...pecas].sort((a, b) => a.nome.localeCompare(b.nome));
-                ordenadas.forEach(p => {
+                pecas.forEach(p => {
                     const item = document.createElement('div');
                     item.className = 'search-item';
-                    item.innerHTML = `<strong>${p.codigo}</strong> - ${p.nome}`;
+                    item.innerText = `${p.nome} (${p.codigo})`;
                     item.onclick = () => {
-                        currentIndex = pecas.findIndex(itemPeca => itemPeca.id === p.id);
+                        currentIndex = pecas.indexOf(p);
                         currentPhotoIndex = 0;
                         exibirPecaAtual();
                         closeModal('listModal');
@@ -1314,9 +1258,15 @@
             openModal('backupModal');
         }
 
-        function openCadastroModal() {
-            document.getElementById('modalTitle').innerText = "Cadastrar Nova Peça";
-            document.getElementById('btnSalvar').innerText = "Salvar";
+        function switchTab(tabId) {
+            document.querySelectorAll('.form-tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.form-tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(`btn-${tabId}`).classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        function openCadastroModalNovo() {
+            document.getElementById('cadastroModalTitle').innerText = "Novo Registro";
             document.getElementById('formId').value = '';
             document.getElementById('formMedidasLista').innerHTML = '';
             document.getElementById('formHistoricoContainer').style.display = 'none';
@@ -1334,14 +1284,12 @@
             const limiteMax = 6;
             const files = input.files;
             if (files.length === 0) return;
-
             let totalAtual = fotosTemporariasEdicao.length;
             if (totalAtual + files.length > limiteMax) {
                 alert(`⚠️ Limite Excedido!\nO sistema permite no máximo ${limiteMax} fotos por registro.`);
                 input.value = '';
                 return;
             }
-
             for (let i = 0; i < files.length; i++) {
                 try {
                     const base64Otimizada = await otimizarEComprimirFotoCanvas(files[i]);
@@ -1360,45 +1308,59 @@
             renderizarPainelDeFotosExistentesParaEdicao();
         }
 
-        let dragStartIndex = -1;
-        let dragTimer;
-        let touchGhost = null;
-        let initialX = 0, initialY = 0;
-        let touchDraggedItemIndex = -1;
-
+        /* ===== GERENCIAMENTO DE REORDENAMENTO VIA SORTABLEJS ===== */
         function renderizarPainelDeFotosExistentesParaEdicao() {
             const container = document.getElementById('formFotosAtuaisContainer');
             const grid = document.getElementById('fotosAtuaisGrid');
+            
+            // Se houver uma instância ativa do SortableJS, destrói para remontar de forma limpa
+            if (sortableInstance) {
+                sortableInstance.destroy();
+                sortableInstance = null;
+            }
+            
             grid.innerHTML = '';
-
             if (fotosTemporariasEdicao.length === 0) {
                 container.style.display = 'none';
                 return;
             }
-
             container.style.display = 'block';
+
             fotosTemporariasEdicao.forEach((srcBase64, index) => {
                 const box = document.createElement('div');
                 box.className = 'foto-atual-item';
-                box.draggable = true;
-                box.dataset.index = index;
-
+                // Mantém o dataset com a string base64 pura para facilitar a leitura na reordenação
+                box.dataset.id = srcBase64; 
                 box.innerHTML = `
                     <img src="${srcBase64}">
                     <button type="button" class="btn-remover-foto" onclick="removerFotoTemporariaDaEdicao(${index})">REMOVER</button>
                 `;
-
-                box.addEventListener('dragstart', handleDragStart);
-                box.addEventListener('dragover', handleDragOver);
-                box.addEventListener('dragleave', handleDragLeave);
-                box.addEventListener('drop', handleDrop);
-                box.addEventListener('dragend', handleDragEnd);
-
-                box.addEventListener('touchstart', handleTouchStart, {passive: false});
-                box.addEventListener('touchmove', handleTouchMove, {passive: false});
-                box.addEventListener('touchend', handleTouchEnd);
-
                 grid.appendChild(box);
+            });
+
+            // Inicialização do SortableJS corrigindo travamento mobile
+            sortableInstance = new Sortable(grid, {
+                animation: 180,
+                ghostClass: 'drag-over',
+                delay: 0, // Inicia o arrasto imediatamente ao toque
+                touchStartThreshold: 4, // Tolerância de pixels antes de assumir o movimento
+                onEnd: function () {
+                    // Mapeia a nova ordem visual das imagens direto das propriedades do DOM
+                    const novaOrdemB64 = [];
+                    grid.querySelectorAll('.foto-atual-item').forEach(el => {
+                        novaOrdemB64.push(el.dataset.id);
+                    });
+                    // Sincroniza o array interno global com a nova sequência arrastada pelo usuário
+                    fotosTemporariasEdicao = novaOrdemB64;
+                    
+                    // Remonta os botões "REMOVER" com os novos índices numéricos corretos
+                    grid.querySelectorAll('.foto-atual-item').forEach((box, idx) => {
+                        const btn = box.querySelector('.btn-remover-foto');
+                        if (btn) {
+                            btn.setAttribute('onclick', `removerFotoTemporariaDaEdicao(${idx})`);
+                        }
+                    });
+                }
             });
         }
 
@@ -1407,199 +1369,89 @@
             renderizarPainelDeFotosExistentesParaEdicao();
         }
 
-        function moverFotoNaArray(fromIndex, toIndex) {
-            if (fromIndex === toIndex) return;
-            const item = fotosTemporariasEdicao.splice(fromIndex, 1)[0];
-            fotosTemporariasEdicao.splice(toIndex, 0, item);
-            renderizarPainelDeFotosExistentesParaEdicao();
+        function carregarMedidasGlobaisDoBanco() {
+            return new Promise((resolve) => {
+                const tx = db.transaction("nomesMedidas", "readonly");
+                const store = tx.objectStore("nomesMedidas");
+                const req = store.getAll();
+                req.onsuccess = () => {
+                    nomesMedidasExistentes = (req.result || []).map(item => item.nome).sort();
+                    resolve();
+                };
+            });
         }
 
-        function handleDragStart(e) {
-            dragStartIndex = parseInt(this.dataset.index);
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', dragStartIndex);
-            setTimeout(() => this.style.opacity = '0.5', 0);
-        }
-
-        function handleDragOver(e) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            const target = e.target.closest('.foto-atual-item');
-            if (target && target !== this) {
-                target.classList.add('drag-over');
-            }
-            return false;
-        }
-
-        function handleDragLeave(e) {
-            this.classList.remove('drag-over');
-        }
-
-        function handleDrop(e) {
-            e.stopPropagation();
-            const target = e.target.closest('.foto-atual-item');
-            if (target) {
-                const targetIndex = parseInt(target.dataset.index);
-                moverFotoNaArray(dragStartIndex, targetIndex);
-            }
-            return false;
-        }
-
-        function handleDragEnd(e) {
-            this.style.opacity = '1';
-            document.querySelectorAll('.foto-atual-item').forEach(el => el.classList.remove('drag-over'));
-        }
-
-        function handleTouchStart(e) {
-            if (e.target.tagName === 'BUTTON') return;
-            const item = this;
-            touchDraggedItemIndex = parseInt(item.dataset.index);
-            initialX = e.touches[0].clientX;
-            initialY = e.touches[0].clientY;
-
-            dragTimer = setTimeout(() => {
-                iniciarTouchDrag(item, e);
-            }, 250);
-        }
-
-        function iniciarTouchDrag(item, e) {
-            const rect = item.getBoundingClientRect();
-            touchGhost = item.cloneNode(true);
-            touchGhost.style.position = 'fixed';
-            touchGhost.style.zIndex = '1000';
-            touchGhost.style.opacity = '0.85';
-            touchGhost.style.pointerEvents = 'none';
-            touchGhost.style.width = rect.width + 'px';
-            touchGhost.style.height = rect.height + 'px';
-            touchGhost.style.left = rect.left + 'px';
-            touchGhost.style.top = rect.top + 'px';
-            touchGhost.style.boxShadow = '0 10px 20px rgba(0,0,0,0.4)';
-            document.body.appendChild(touchGhost);
-            item.style.opacity = '0.3';
-            if (navigator.vibrate) navigator.vibrate(50);
-        }
-
-        function handleTouchMove(e) {
-            if (!touchGhost) {
-                const dx = e.touches[0].clientX - initialX;
-                const dy = e.touches[0].clientY - initialY;
-                if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
-                    clearTimeout(dragTimer);
-                }
-                return;
-            }
-            e.preventDefault();
-
-            const clientX = e.touches[0].clientX;
-            const clientY = e.touches[0].clientY;
-
-            touchGhost.style.left = (clientX - parseFloat(touchGhost.style.width)/2) + 'px';
-            touchGhost.style.top = (clientY - parseFloat(touchGhost.style.height)/2) + 'px';
-
-            document.querySelectorAll('.foto-atual-item').forEach(el => el.classList.remove('drag-over'));
-            const alvoAbaixo = document.elementFromPoint(clientX, clientY);
-            if (alvoAbaixo) {
-                const itemAlvo = alvoAbaixo.closest('.foto-atual-item');
-                if (itemAlvo && parseInt(itemAlvo.dataset.index) !== touchDraggedItemIndex) {
-                    itemAlvo.classList.add('drag-over');
-                }
-            }
-        }
-
-        function handleTouchEnd(e) {
-            clearTimeout(dragTimer);
-            if (!touchGhost) return;
-
-            const clientX = e.changedTouches[0].clientX;
-            const clientY = e.changedTouches[0].clientY;
-
-            document.querySelectorAll('.foto-atual-item').forEach(el => el.classList.remove('drag-over'));
-            const alvoAbaixo = document.elementFromPoint(clientX, clientY);
-            let indexDestino = -1;
-            if (alvoAbaixo) {
-                const itemAlvo = alvoAbaixo.closest('.foto-atual-item');
-                if (itemAlvo) {
-                    indexDestino = parseInt(itemAlvo.dataset.index);
-                }
-            }
-
-            touchGhost.remove();
-            touchGhost = null;
-
-            if (indexDestino !== -1 && indexDestino !== touchDraggedItemIndex) {
-                moverFotoNaArray(touchDraggedItemIndex, indexDestino);
-            } else {
-                renderizarPainelDeFotosExistentesParaEdicao();
-            }
-            touchDraggedItemIndex = -1;
-        }
-
-        function adicionarLinhaMedida(nomePreSelecionado = "", valorPreSelecionado = "", unidadePreSelecionada = "mm") {
-            const container = document.getElementById('formMedidasLista');
+        function adicionarLinhaMedida(nomeInic = "", valorInic = "", unidadeInic = "mm") {
+            const lista = document.getElementById('formMedidasLista');
             const row = document.createElement('div');
             row.className = 'measurement-row-form';
-
-            const selectNome = document.createElement('select');
-            selectNome.required = true;
-
-            const inputValor = document.createElement('input');
-            inputValor.type = 'text';
-            inputValor.inputMode = 'decimal';
-            inputValor.placeholder = 'Valor';
-            inputValor.required = true;
-            inputValor.value = valorPreSelecionado;
-
-            const selectUnidade = document.createElement('select');
-            selectUnidade.innerHTML = `<option value="mm">mm</option><option value="pol">pol</option><option value="Graus">°</option><option value="Unid">un</option>`;
-            selectUnidade.value = unidadePreSelecionada;
-
-            const btnDelete = document.createElement('button');
-            btnDelete.type = 'button';
-            btnDelete.style.cssText = "background:none; border:none; color:var(--danger); font-size:1.2rem; cursor:pointer; padding: 0 0.4rem;";
-            btnDelete.innerText = '✕';
-            btnDelete.onclick = () => row.remove();
-
-            atualizarSelectDeOpcoesDeMedidas(selectNome, nomePreSelecionado);
-
-            row.appendChild(selectNome);
-            row.appendChild(inputValor);
-            row.appendChild(selectUnidade);
-            row.appendChild(btnDelete);
-            container.appendChild(row);
-
-            configurarMascaraDecimalEFlutuanteParaCamposDoFormulario(inputValor);
+            
+            const selNome = document.createElement('select');
+            selNome.required = true;
+            atualizarSelectDeOpcoesDeMedidas(selNome, nomeInic);
+            
+            const inpVal = document.createElement('input');
+            inpVal.type = 'text';
+            inpVal.placeholder = 'Valor';
+            inpVal.required = true;
+            inpVal.value = valorInic;
+            inpVal.inputMode = 'decimal';
+            
+            const selUnid = document.createElement('select');
+            const opcoesUnidades = ["mm", "pol", "cm", "m", "kg", "g", "un"];
+            opcoesUnidades.forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u;
+                opt.text = u;
+                if (u === unidadeInic) opt.selected = true;
+                selUnid.appendChild(opt);
+            });
+            
+            const btnDel = document.createElement('button');
+            btnDel.type = 'button';
+            btnDel.className = 'btn';
+            btnDel.style.background = 'var(--danger)';
+            btnDel.style.padding = '0.65rem 0.8rem';
+            btnDel.innerText = '✕';
+            btnDel.onclick = () => { row.remove(); };
+            
+            row.appendChild(selNome);
+            row.appendChild(inpVal);
+            row.appendChild(selUnid);
+            row.appendChild(btnDel);
+            lista.appendChild(row);
         }
 
         function atualizarSelectDeOpcoesDeMedidas(selectElement, valorSelecionado = "") {
             selectElement.innerHTML = '';
             const optPlaceholder = document.createElement('option');
             optPlaceholder.value = "";
-            optPlaceholder.text = "Selecione...";
+            optPlaceholder.text = "-- Selecione --";
             optPlaceholder.disabled = true;
-            optPlaceholder.selected = !valorSelecionado;
+            if (valorSelecionado === "") optPlaceholder.selected = true;
             selectElement.appendChild(optPlaceholder);
-
-            nomesMedidasExistentes.forEach(m => {
+            
+            nomesMedidasExistentes.forEach(n => {
                 const opt = document.createElement('option');
-                opt.value = m;
-                opt.text = m;
-                if (m === valorSelecionado) opt.selected = true;
+                opt.value = n;
+                opt.text = n;
+                if (n === valorSelecionado) opt.selected = true;
                 selectElement.appendChild(opt);
             });
-
-            const optCriarNovo = document.createElement('option');
-            optCriarNovo.value = "__NOVO__";
-            optCriarNovo.text = "⨁ Adicionar Medida";
-            optCriarNovo.style.color = "var(--primary)";
-            optCriarNovo.style.fontWeight = "bold";
-            selectElement.appendChild(optCriarNovo);
-
+            
+            const optNovo = document.createElement('option');
+            optNovo.value = "__NOVO__";
+            optNovo.text = "⊕ Cadastrar Novo Nome...";
+            optNovo.style.color = "var(--primary)";
+            optNovo.style.fontWeight = "bold";
+            selectElement.appendChild(optNovo);
+            
             const optDeletarOpcao = document.createElement('option');
             optDeletarOpcao.value = "__DELETAR__";
             optDeletarOpcao.text = "⨂ Remover Medida";
             optDeletarOpcao.style.color = "var(--danger)";
             selectElement.appendChild(optDeletarOpcao);
-
+            
             selectElement.onchange = () => {
                 if (selectElement.value === "__NOVO__") {
                     selectDisparadorOriginal = selectElement;
@@ -1619,7 +1471,6 @@
         function abrirModalDeletarOpcao(valorOriginal) {
             const selectAlvo = document.getElementById('deletarSelectAlvo');
             selectAlvo.innerHTML = '';
-            
             nomesMedidasExistentes.forEach(m => {
                 const opt = document.createElement('option');
                 opt.value = m;
@@ -1627,7 +1478,6 @@
                 selectAlvo.appendChild(opt);
             });
             openModal('deletarOpcaoModal');
-
             window.fecharModalDeletarOpcao = () => {
                 closeModal('deletarOpcaoModal');
                 if (selectDisparadorOriginal) selectDisparadorOriginal.value = valorOriginal;
@@ -1637,11 +1487,9 @@
         function confirmarDeletarMedidaGlobal() {
             const alvo = document.getElementById('deletarSelectAlvo').value;
             if (!alvo) return;
-
             const tx = db.transaction("nomesMedidas", "readwrite");
             const store = tx.objectStore("nomesMedidas");
             store.delete(alvo);
-
             tx.oncomplete = () => {
                 carregarMedidasGlobaisDoBanco().then(() => {
                     const todosSelects = document.querySelectorAll('#formMedidasLista select:nth-child(1)');
@@ -1662,71 +1510,28 @@
             const tx = db.transaction("nomesMedidas", "readwrite");
             const store = tx.objectStore("nomesMedidas");
             store.put({ nome: nomeMedida });
-
             tx.oncomplete = () => {
                 carregarMedidasGlobaisDoBanco().then(() => {
                     const todosSelects = document.querySelectorAll('#formMedidasLista select:nth-child(1)');
                     todosSelects.forEach(sel => {
-                        const valorSalvoNoSelect = sel.value;
-                        if (sel === selectDisparadorOriginal) {
-                            atualizarSelectDeOpcoesDeMedidas(sel, nomeMedida);
-                        } else {
-                            atualizarSelectDeOpcoesDeMedidas(sel, valorSalvoNoSelect);
-                        }
+                        const valSalvo = sel.value;
+                        atualizarSelectDeOpcoesDeMedidas(sel, valSalvo);
                     });
+                    if (selectDisparadorOriginal) selectDisparadorOriginal.value = nomeMedida;
                 });
-            };
-        }
-
-        function carregarMedidasGlobaisDoBanco() {
-            return new Promise((resolve) => {
-                const tx = db.transaction("nomesMedidas", "readonly");
-                const store = tx.objectStore("nomesMedidas");
-                const req = store.getAll();
-                req.onsuccess = () => {
-                    nomesMedidasExistentes = req.result.map(r => r.nome).sort((a,b) => a.localeCompare(b));
-                    resolve(true);
-                };
-            });
-        }
-
-        function configurarMascaraDecimalEFlutuanteParaCamposDoFormulario(inputField) {
-            inputField.addEventListener('input', (e) => {
-                let val = e.target.value;
-                val = val.replace(/,/g, '.');
-                val = val.replace(/[^0-9.]/g, '');
-                const parts = val.split('.');
-                if (parts.length > 2) {
-                    val = parts[0] + '.' + parts.slice(1).join('');
-                }
-                e.target.value = val;
-            });
-        }
-
-        function carregarPecas() {
-            const tx = db.transaction("pecas", "readonly");
-            const store = tx.objectStore("pecas");
-            const request = store.getAll();
-            request.onsuccess = () => {
-                pecas = request.result;
-                if (currentIndex >= pecas.length) {
-                    currentIndex = Math.max(0, pecas.length - 1);
-                }
-                exibirPecaAtual();
             };
         }
 
         function otimizarEComprimirFotoCanvas(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
-                reader.onload = function(event) {
+                reader.onload = (event) => {
                     const img = new Image();
-                    img.onload = function() {
+                    img.onload = () => {
                         const canvas = document.createElement('canvas');
                         let width = img.width;
                         let height = img.height;
                         const max_size = 1024;
-
                         if (width > height) {
                             if (width > max_size) {
                                 height *= max_size / width;
@@ -1738,7 +1543,6 @@
                                 height = max_size;
                             }
                         }
-
                         canvas.width = width;
                         canvas.height = height;
                         const ctx = canvas.getContext('2d');
@@ -1755,14 +1559,13 @@
 
         function salvarPeca(event) {
             event.preventDefault();
-
             const idVal = document.getElementById('formId').value;
             const nome = document.getElementById('formNome').value.trim();
             const codigo = document.getElementById('formCodigo').value.trim();
             const observacao = document.getElementById('formObservacao').value.trim();
             const responsavel = document.getElementById('formResponsavel').value.trim();
-
             const linhas = document.querySelectorAll('.measurement-row-form');
+            
             const medidas = [];
             linhas.forEach(row => {
                 const selNome = row.querySelector('select:nth-child(1)');
@@ -1779,15 +1582,7 @@
 
             const fotosFinais = [...fotosTemporariasEdicao];
             const agoraISO = new Date().toISOString();
-
-            const registroPeca = {
-                nome,
-                codigo,
-                fotos: fotosFinais,
-                medidas,
-                observacao,
-                responsavel
-            };
+            const registroPeca = { nome, codigo, fotos: fotosFinais, medidas, observacao, responsavel };
 
             if (idVal !== "") {
                 registroPeca.id = Number(idVal);
@@ -1796,65 +1591,68 @@
                 registroPeca.dataAtualizacao = agoraISO;
             } else {
                 registroPeca.dataCadastro = agoraISO;
-                registroPeca.dataAtualizacao = null;
+                registroPeca.dataAtualizacao = agoraISO;
             }
 
             const tx = db.transaction("pecas", "readwrite");
             const store = tx.objectStore("pecas");
-            let requestAction;
-
-            if (idVal !== "") {
-                requestAction = store.put(registroPeca);
-            } else {
-                requestAction = store.add(registroPeca);
-            }
-
-            requestAction.onsuccess = () => {
-                tx.oncomplete = () => {
-                    closeModal('cadastroModal');
-                    if (idVal === "") {
-                        currentIndex = pecas.length;
-                    }
-                    currentPhotoIndex = 0;
-                    carregarPecas();
-                };
+            
+            tx.onerror = (e) => {
+                alert("❌ Erro de duplicidade:\nJá existe um item cadastrado com este mesmo Código.");
             };
 
-            requestAction.onerror = (err) => {
-                err.preventDefault();
-                alert(`⚠️ Conflito de Código!\nO código "${codigo}" já pertence a outra peça cadastrada.`);
+            const req = store.put(registroPeca);
+            req.onsuccess = (e) => {
+                const idSalvo = idVal !== "" ? registroPeca.id : e.target.result;
+                const txCarregar = db.transaction("pecas", "readonly");
+                const storeCarregar = txCarregar.objectStore("pecas");
+                storeCarregar.getAll().onsuccess = (ev) => {
+                    pecas = ev.target.result || [];
+                    const itemSalvo = pecas.find(p => p.id === idSalvo);
+                    currentIndex = itemSalvo ? pecas.indexOf(itemSalvo) : 0;
+                    currentPhotoIndex = 0;
+                    exibirPecaAtual();
+                    closeModal('cadastroModal');
+                };
             };
         }
 
-        function prepararEdicao() {
+        function formatarDataHora(isoString) {
+            if (!isoString) return "";
+            const d = new Date(isoString);
+            return d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function obterTextoHistorico(peca) {
+            if (!peca) return "";
+            if (peca.dataAtualizacao) return formatarDataHora(peca.dataAtualizacao);
+            if (peca.dataCadastro) return formatarDataHora(peca.dataCadastro);
+            return "";
+        }
+
+        function openCadastroModalEditar() {
             if (pecas.length === 0) return;
             const peca = pecas[currentIndex];
-
-            document.getElementById('modalTitle').innerText = "Editar Peça Cadastrada";
-            document.getElementById('btnSalvar').innerText = "Atualizar Registro";
+            
+            document.getElementById('cadastroModalTitle').innerText = "Editar Peça";
             document.getElementById('formId').value = peca.id;
             document.getElementById('formNome').value = peca.nome;
             document.getElementById('formCodigo').value = peca.codigo;
-            document.getElementById('formObservacao').value = peca.observacao || '';
-            document.getElementById('formResponsavel').value = peca.responsavel || '';
-
-            const histText = obterTextoHistorico(peca);
-            const containerHist = document.getElementById('formHistoricoContainer');
-            const boxHist = document.getElementById('formHistoricoTexto');
-            if (histText) {
-                containerHist.style.display = 'flex';
-                boxHist.innerText = histText;
-            } else {
-                containerHist.style.display = 'none';
-                boxHist.innerText = '';
+            document.getElementById('formObservacao').value = peca.observacao || "";
+            document.getElementById('formResponsavel').value = peca.responsavel || "";
+            
+            let histInfo = `Cadastrado em: ${formatarDataHora(peca.dataCadastro)}`;
+            if (peca.dataAtualizacao) {
+                histInfo += `\nÚltima Modificação: ${formatarDataHora(peca.dataAtualizacao)}`;
             }
-
+            document.getElementById('formHistoricoContainer').style.display = 'block';
+            document.getElementById('formHistoricoTexto').innerText = histInfo;
+            
             fotosTemporariasEdicao = peca.fotos ? [...peca.fotos] : [];
             renderizarPainelDeFotosExistentesParaEdicao();
-
+            
             document.getElementById('formMedidasLista').innerHTML = '';
             switchTab('tab-peca');
-
             carregarMedidasGlobaisDoBanco().then(() => {
                 if (peca.medidas && peca.medidas.length > 0) {
                     peca.medidas.forEach(m => adicionarLinhaMedida(m.nome, m.valor, m.unidade));
@@ -1870,11 +1668,9 @@
             const peca = pecas[currentIndex];
             const confirmacao = confirm(`⚠️ Excluir Registro?\nDeseja apagar permanentemente a peça "${peca.nome}" (Código: ${peca.codigo}) do dispositivo?`);
             if (!confirmacao) return;
-
             const tx = db.transaction("pecas", "readwrite");
             const store = tx.objectStore("pecas");
             store.delete(peca.id);
-
             tx.oncomplete = () => {
                 if (currentIndex > 0) currentIndex--;
                 currentPhotoIndex = 0;
@@ -1884,59 +1680,176 @@
 
         function configurarGestosTouchSlider() {
             const viewer = document.getElementById('imageViewer');
-            let tStartX = 0;
-            let tStartY = 0;
-            let tEndX = 0;
-            let tEndY = 0;
-
+            let tStartX = 0, tStartY = 0, tEndX = 0, tEndY = 0;
             viewer.ontouchstart = (e) => {
                 if (e.target.closest('.img-arrow-btn') || e.target.closest('.piece-navigator-bar')) return;
                 tStartX = e.touches[0].screenX;
                 tStartY = e.touches[0].screenY;
             };
-
             viewer.ontouchmove = (e) => {
                 if (e.target.closest('.img-arrow-btn') || e.target.closest('.piece-navigator-bar')) return;
                 tEndX = e.touches[0].screenX;
                 tEndY = e.touches[0].screenY;
             };
-
             viewer.ontouchend = (e) => {
                 if (e.target.closest('.img-arrow-btn') || e.target.closest('.piece-navigator-bar')) return;
                 const diffX = tEndX - tStartX;
                 const diffY = tEndY - tStartY;
-
                 if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 45) {
                     if (diffX > 0) mudarFoto(-1);
                     else mudarFoto(1);
-                } else if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 55) {
-                    if (diffY > 0) mudarPeca(-1);
-                    else mudarPeca(1);
                 }
-                tStartX = 0; tStartY = 0; tEndX = 0; tEndY = 0;
+            };
+        }
+        configurarGestosTouchSlider();
+
+        function exportarDadosSistema() {
+            if (pecas.length === 0) {
+                alert("Nenhum dado encontrado para exportar.");
+                return;
+            }
+            const tx = db.transaction("nomesMedidas", "readonly");
+            const storeM = tx.objectStore("nomesMedidas");
+            storeM.getAll().onsuccess = (ev) => {
+                const medidasSalvas = ev.target.result || [];
+                const pacoteBackup = {
+                    tipo: "BACKUP_CATALOGO_TECNICO",
+                    versao: 1,
+                    dataGeracao: new Date().toISOString(),
+                    medidasGlobais: medidasSalvas,
+                    pecas: pecas
+                };
+                const jsonStr = JSON.stringify(pacoteBackup, null, 2);
+                const blob = new Blob([jsonStr], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `backup_catalogo_medidas_${new Date().toISOString().slice(0,10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                localStorage.setItem("sistema_ultimo_backup", new Date().toISOString());
+                atualizarMetadadosBackupLabels();
             };
         }
 
-        function exportarCatalogoPDF() {
-            if (pecas.length === 0) {
-                alert("Nenhuma peça cadastrada para gerar o catálogo.");
+        function importarDadosSistema(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const pacote = JSON.parse(e.target.result);
+                    if (!pacote || pacote.tipo !== "BACKUP_CATALOGO_TECNICO") {
+                        throw new Error();
+                    }
+                    const confirmacao = confirm(`⚙️ Confirmar Restauração?\n\nEste arquivo contém ${pacote.pecas.length} peças e ${pacote.medidasGlobais.length} configurações globais.\n\nATENÇÃO: Os dados atuais deste dispositivo serão SUBSTITUÍDOS.`);
+                    if (!confirmacao) return;
+                    
+                    await executarLimpezaBancoDados();
+                    
+                    const txMed = db.transaction("nomesMedidas", "readwrite");
+                    const storeM = txMed.objectStore("nomesMedidas");
+                    pacote.medidasGlobais.forEach(m => storeM.put(m));
+                    
+                    const txPec = db.transaction("pecas", "readwrite");
+                    const storeP = txPec.objectStore("pecas");
+                    pacote.pecas.forEach(p => {
+                        delete p.id; 
+                        storeP.put(p);
+                    });
+
+                    txPec.oncomplete = () => {
+                        localStorage.setItem("sistema_ultima_restauracao", new Date().toISOString());
+                        alert("🎉 Dados restaurados com absoluto sucesso!");
+                        currentIndex = 0;
+                        currentPhotoIndex = 0;
+                        carregarPecas();
+                        closeModal('backupModal');
+                    };
+                } catch (err) {
+                    console.error(err);
+                    alert("❌ Falha crítica ao importar: certifique-se de escolher um arquivo válido de backup deste catálogo.");
+                } finally {
+                    input.value = '';
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function atualizarMetadadosBackupLabels() {
+            const b = localStorage.getItem("sistema_ultimo_backup");
+            const r = localStorage.getItem("sistema_ultima_restauracao");
+            document.getElementById('lblUltimoBackup').innerText = b ? formatarDataHora(b) : "--";
+            document.getElementById('lblUltimoRestauro').innerText = r ? formatarDataHora(r) : "--";
+        }
+
+        function executarLimpezaBancoDados() {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(["pecas", "nomesMedidas"], "readwrite");
+                const storePecas = tx.objectStore("pecas");
+                const storeMedidas = tx.objectStore("nomesMedidas");
+                
+                storePecas.clear();
+                storeMedidas.clear();
+
+                tx.oncomplete = () => resolve(true);
+                tx.onerror = (e) => reject(e);
+            });
+        }
+
+        async function limparTodoOSistemaComAviso() {
+            const confirmacao1 = confirm("⚠️ Alerta Crítico:\nVocê tem certeza absoluta que deseja apagar TODAS as peças e configurações de medidas cadastradas do dispositivo?");
+            if (!confirmacao1) return;
+
+            const confirmacao2 = prompt("Para confirmar a exclusão permanente de todo o sistema, digite o termo abaixo:\nEXCLUIR");
+            if (confirmacao2 !== "EXCLUIR" && confirmacao2 !== "excluir") {
+                alert("Confirmação inválida. Operação abortada.");
                 return;
             }
 
-            const win = window.open("", "_blank");
+            try {
+                await executarLimpezaBancoDados();
+                alert("O sistema foi totalmente resetado para as configurações de fábrica.");
+                currentIndex = 0;
+                currentPhotoIndex = 0;
+                carregarPecas();
+                closeModal('backupModal');
+            } catch (err) {
+                console.error(err);
+                alert("Erro ao tentar limpar o banco de dados.");
+            }
+        }
+
+        function imprimirCatalogoLocal() {
+            if (pecas.length === 0) {
+                alert("Não existem peças cadastradas para gerar o catálogo.");
+                return;
+            }
+            const iframe = document.createElement('iframe');
+            iframe.style.position = 'fixed';
+            iframe.style.right = '0';
+            iframe.style.bottom = '0';
+            iframe.style.width = '0';
+            iframe.style.height = '0';
+            iframe.style.border = '0';
+            document.body.appendChild(iframe);
+            const doc = iframe.contentWindow.document;
+
             let htmlContent = `
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Catálogo Técnico - Impressão</title>
+                <meta charset="UTF-8">
                 <style>
-                    body { font-family: system-ui, sans-serif; color: #0f172a; padding: 20px; background:#fff; }
-                    .header-print { text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 30px; }
-                    .header-print h1 { margin: 0; font-size: 24px; color: #2563eb; }
-                    .header-print p { margin: 5px 0 0 0; font-size: 13px; color: #64748b; }
-                    .peca-block { display: flex; gap: 20px; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; margin-bottom: 20px; page-break-inside: avoid; background:#fff; }
-                    .peca-img-wrapper { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 110px; flex-shrink: 0; }
-                    .peca-img-box { width: 110px; height: 110px; border: 1px solid #cbd5e1; border-radius: 4px; display: flex; align-items: center; justify-content: center; background: #f8fafc; flex-shrink: 0; }
+                    body { font-family: system-ui, sans-serif; color: #0f172a; margin: 0; padding: 20px; background: #fff; }
+                    .header-print { text-align: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 30px; }
+                    .header-print h1 { margin: 0; font-size: 24px; color: #1e293b; }
+                    .header-print p { margin: 5px 0 0 0; font-size: 12px; color: #64748b; }
+                    .peca-block { display: flex; gap: 20px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 20px; page-break-inside: avoid; background: #fff; }
+                    .peca-img-wrapper { width: 130px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+                    .peca-img-box { width: 130px; height: 130px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; display: flex; align-items: center; justify-content: center; overflow: hidden; }
                     .peca-img-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
                     .peca-code-below { font-size: 13px; font-weight: bold; color: #0f172a; text-align: center; word-break: break-all; width: 100%; }
                     .peca-details { flex: 1; }
@@ -1970,157 +1883,25 @@
                     });
                 }
                 if (peca.observacao && peca.observacao.trim() !== "") {
-                    htmlContent += `\n\n<strong>Observações:</strong> ${peca.observacao}`;
+                    htmlContent += `\n\n<strong>Observações:</strong>\n${peca.observacao}`;
                 }
-                const hist = obterTextoHistorico(peca);
-
-                htmlContent += `</pre>
-                    </div>
-                </div>`;
+                if (peca.responsavel) {
+                    htmlContent += `\n\n<span style="color:#64748b; font-size:11px;">Medidas coletadas por: ${peca.responsavel}</span>`;
+                }
+                htmlContent += `\n<span style="color:#64748b; font-size:11px;">Registro histórico: ${obterTextoHistorico(peca)}</span>`;
+                htmlContent += `</pre></div></div>`;
             });
 
-            htmlContent += `
-                <script>
-                    window.onload = function() {
-                        setTimeout(() => { window.print(); }, 500);
-                    }
-                <\/script>
-            </body>
-            </html>
-            `;
+            htmlContent += `</body></html>`;
+            doc.open();
+            doc.write(htmlContent);
+            doc.close();
 
-            win.document.write(htmlContent);
-            win.document.close();
-        }
-
-        function exportarDadosSistema() {
-            if (pecas.length === 0) {
-                alert("Não há dados cadastrados para exportar backup.");
-                return;
-            }
-            const dadosBackup = {
-                versao: "1.0",
-                exportadoEm: new Date().toISOString(),
-                pecas: pecas,
-                configuracoesMedidas: nomesMedidasExistentes.map(n => ({ nome: n }))
-            };
-
-            const strJson = JSON.stringify(dadosBackup, null, 2);
-            const blob = new Blob([strJson], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-
-            const dataFormatada = new Date().toISOString().slice(0,10);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `backup_catalogo_tecnico_${dataFormatada}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-
-            localStorage.setItem("sistema_ultimo_backup", new Date().toISOString());
-            atualizarMetadadosBackupLabels();
-        }
-
-        async function importarDadosSistema(input) {
-            const file = input.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                try {
-                    const dadosImportados = JSON.parse(e.target.result);
-                    if (!dadosImportados.pecas) {
-                        throw new Error("Arquivo inválido");
-                    }
-
-                    const confirmacao = confirm(`📥 Confirmar Restauração:\nEncontramos ${dadosImportados.pecas.length} peças no arquivo de backup.\nDeseja sobrescrever e substituir o banco de dados atual por este?`);
-                    if (!confirmacao) {
-                        input.value = '';
-                        return;
-                    }
-
-                    await executarLimpezaBancoDados();
-
-                    const tx = db.transaction(["pecas", "nomesMedidas"], "readwrite");
-                    const storePecas = tx.objectStore("pecas");
-                    const storeMedidas = tx.objectStore("nomesMedidas");
-
-                    if (dadosImportados.pecas && dadosImportados.pecas.length > 0) {
-                        dadosImportados.pecas.forEach(p => {
-                            delete p.id;
-                            storePecas.add(p);
-                        });
-                    }
-
-                    if (dadosImportados.configuracoesMedidas && dadosImportados.configuracoesMedidas.length > 0) {
-                        dadosImportados.configuracoesMedidas.forEach(m => {
-                            storeMedidas.put(m);
-                        });
-                    }
-
-                    tx.oncomplete = () => {
-                        localStorage.setItem("sistema_ultima_restauracao", new Date().toISOString());
-                        alert("🎉 Dados restaurados com absoluto sucesso!");
-                        currentIndex = 0;
-                        currentPhotoIndex = 0;
-                        carregarPecas();
-                        closeModal('backupModal');
-                    };
-
-                } catch (err) {
-                    console.error(err);
-                    alert("❌ Falha crítica ao importar: certifique-se de escolher um arquivo válido de backup deste catálogo.");
-                } finally {
-                    input.value = '';
-                }
-            };
-            reader.readAsText(file);
-        }
-
-        function atualizarMetadadosBackupLabels() {
-            const b = localStorage.getItem("sistema_ultimo_backup");
-            const r = localStorage.getItem("sistema_ultima_restauracao");
-
-            document.getElementById('lblUltimoBackup').innerText = b ? formatarDataHora(b) : "--";
-            document.getElementById('lblUltimoRestauro').innerText = r ? formatarDataHora(r) : "--";
-        }
-
-        function executarLimpezaBancoDados() {
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(["pecas", "nomesMedidas"], "readwrite");
-                const storePecas = tx.objectStore("pecas");
-                const storeMedidas = tx.objectStore("nomesMedidas");
-                
-                storePecas.clear();
-                storeMedidas.clear();
-
-                tx.oncomplete = () => resolve(true);
-                tx.onerror = (e) => reject(e);
-            });
-        }
-
-        async function limparTodoOSistemaComAviso() {
-            const confirmacao1 = confirm("⚠️ Alerta Crítico:\nVocê tem certeza absoluta que deseja apagar TODAS as peças e configurações de medidas cadastradas do dispositivo?");
-            if (!confirmacao1) return;
-
-            const confirmacao2 = prompt("Para confirmar a exclusão permanente de todo o sistema, digite o termo abaixo:\\nEXCLUIR");
-            if (confirmacao2 !== "EXCLUIR" && confirmacao2 !== "excluir") {
-                alert("Confirmação inválida. Operação abortada.");
-                return;
-            }
-
-            try {
-                await executarLimpezaBancoDados();
-                alert("O sistema foi totalmente resetado para as configurações de fábrica.");
-                currentIndex = 0;
-                currentPhotoIndex = 0;
-                carregarPecas();
-                closeModal('backupModal');
-            } catch (err) {
-                console.error(err);
-                alert("Erro ao tentar limpar o banco de dados.");
-            }
+            iframe.contentWindow.focus();
+            setTimeout(() => {
+                iframe.contentWindow.print();
+                setTimeout(() => { document.body.removeChild(iframe); }, 1000);
+            }, 500);
         }
 
         window.onload = initDB;
