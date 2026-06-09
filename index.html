@@ -1367,7 +1367,13 @@
         let initialX = 0, initialY = 0;
         let touchDraggedItemIndex = -1;
 
-	// Nova implementação estável utilizando a biblioteca SortableJS para evitar travamentos em telas touch
+   
+
+
+
+
+
+
 	function renderizarPainelDeFotosExistentesParaEdicao() {
 		const container = document.getElementById('formFotosAtuaisContainer');
 		const grid = document.getElementById('fotosAtuaisGrid');
@@ -1391,11 +1397,13 @@
 			grid.appendChild(box);
 		});
 
-		// Inicializa a reordenação estável via SortableJS tanto para computadores quanto para smartphones
+		// Inicializa o SortableJS com Fallback nativo para destravar o toque no Android
 		if (window.Sortable) {
 			Sortable.create(grid, {
 				animation: 150,
 				ghostClass: 'drag-over',
+				forceFallback: true,     // <== ISSO DESTREVA: Cria um elemento virtual para mover suavemente no Android
+				fallbackTolerance: 3,    // Evita disparar o arrasto caso o usuário dê apenas um clique rápido para remover
 				onEnd: function () {
 					const novaOrdem = [];
 					grid.querySelectorAll('.foto-atual-item').forEach(box => {
@@ -1409,11 +1417,19 @@
 		}
 	}
 
-	// Função auxiliar necessária para o botão REMOVER que o SortableJS utiliza
 	function removerFotoTemporariaDaEdicao(index) {
 		fotosTemporariasEdicao.splice(index, 1);
 		renderizarPainelDeFotosExistentesParaEdicao();
 	}
+
+
+
+
+
+
+
+
+
 
         function removerFotoTemporariaDaEdicao(index) {
             fotosTemporariasEdicao.splice(index, 1);
