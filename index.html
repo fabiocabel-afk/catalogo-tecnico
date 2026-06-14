@@ -1695,8 +1695,7 @@
             } else if (opcao === 'text') {
                 abrirListaModalCompleta();
             } else if (opcao === 'exportar_pdf') {
-                alert("Aviso:\\nA ferramenta de exportação completa em formato de livreto PDF foi otimizada via Print Nativo do Navegador. Utilize 'Ctrl+P' ou o menu de impressão para salvar.");
-                window.print();
+                gerarCatalogoVisual();
             } else if (opcao === 'backup') {
                 openModal("backupModal");
             } else if (opcao === 'novo') {
@@ -1836,41 +1835,71 @@
             }
         }
 
-        function compartilharPecaTexto() {
-            if (pecas.length === 0) return;
-            const peca = pecas[currentIndex];
+        function _montarTextoFicha(peca) {
+            let str = `*Peça:* ${peca.nome}\n`;
+            str += `*Código:* ${peca.codigo || '--'}\n`;
 
-            let str = `⚙️ *Ficha Técnica: ${peca.nome}*\\n`;
-            str += `Código: ${peca.codigo || '--'}\\n`;
-            str += `\\n`; 
-            
-            const mats = (peca.materiais && peca.materiais.length > 0) ? peca.materiais.join(", ") : "--";
-            str += `Material: ${mats}\\n`;
-            
-            let pesoStr = "--";
-            if (peca.pesoValor) pesoStr = `${peca.pesoValor} ${peca.pesoUnidade || 'g'}`;
-            str += `Peso: ${pesoStr}\\n`;
-            str += `\\n`; 
+            const mats = (peca.materiais && peca.materiais.length > 0) ? peca.materiais.join(", ") : null;
+            if (mats) str += `*Material:* ${mats}\n`;
+
+            const pesoStr = peca.pesoValor ? `${peca.pesoValor} ${peca.pesoUnidade || 'g'}` : null;
+            if (pesoStr) str += `*Peso:* ${pesoStr}\n`;
 
             if (peca.medidas && peca.medidas.length > 0) {
+                str += `\n*MEDIDAS:*\n`;
                 peca.medidas.forEach(m => {
-                    str += `• ${m.nome}: ${m.valor} ${m.unidade}\\n`;
+                    str += `◆ ${m.nome}: ${m.valor} ${m.unidade}\n`;
                 });
-            }
-            
-            if (peca.observacao && peca.observacao.trim() !== "") {
-                str += `\\n*Obs:* ${peca.observacao}`;
             }
 
-            if (navigator.share) {
-                navigator.share({
-                    title: peca.nome,
-                    text: str
-                }).catch(err => console.log(err));
-            } else {
-                navigator.clipboard.writeText(str).then(() => {
-                    alert("Texto da Ficha Técnica copiado para a Área de Transferência!");
-                });
+            if (peca.observacao && peca.observacao.trim() !== "") {
+                str += `\n*Observações:* ${peca.observacao.trim()}\n`;
+            }
+
+            str += `\n_Enviado via Catálogo Técnico_`;
+            return str;
+        }
+
+        async function compartilharPecaTexto() {
+            if (pecas.length === 0) return;
+            const peca = pecas[currentIndex];
+            const texto = _montarTextoFicha(peca);
+            const temFoto = peca.fotos && peca.fotos.length > 0;
+
+            try {
+                if (temFoto) {
+                    // Converter base64 → Blob → File para compartilhar junto com o texto
+                    const res = await fetch(peca.fotos[0]);
+                    const blob = await res.blob();
+                    const ext = blob.type.includes("png") ? "png" : "jpg";
+                    const file = new File([blob], `${peca.codigo || 'peca'}.${ext}`, { type: blob.type });
+
+                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                        // Abre seletor nativo do SO: WhatsApp, Gmail, Telegram, etc.
+                        await navigator.share({ title: peca.nome, text: texto, files: [file] });
+                        return;
+                    }
+                }
+
+                // Sem foto ou dispositivo sem suporte a compartilhar arquivos
+                if (navigator.share) {
+                    await navigator.share({ title: peca.nome, text: texto });
+                } else {
+                    // Fallback para desktop: copia texto para área de transferência
+                    await navigator.clipboard.writeText(texto);
+                    alert("Ficha Técnica copiada para a Área de Transferência!");
+                }
+
+            } catch (err) {
+                if (err.name !== "AbortError") {
+                    console.error(err);
+                    try {
+                        await navigator.clipboard.writeText(texto);
+                        alert("Ficha copiada para a Área de Transferência!");
+                    } catch (_) {
+                        alert("Não foi possível compartilhar neste dispositivo.");
+                    }
+                }
             }
         }
 
@@ -2415,6 +2444,237 @@
             } catch (err) {
                 console.error(err);
                 alert("Erro ao tentar limpar o banco de dados.");
+            }
+        }
+
+        function gerarCatalogoVisual() {
+            if (pecas.length === 0) {
+                alert("Nenhuma peça cadastrada para gerar o catálogo.");
+                return;
+            }
+
+            const dataHoje = new Date();
+            const dataFormatada = `${dataHoje.getDate().toString().padStart(2,'0')}/${(dataHoje.getMonth()+1).toString().padStart(2,'0')}/${dataHoje.getFullYear()}`;
+
+            const cardsHTML = pecas.map((p, idx) => {
+                const fotoHTML = (p.fotos && p.fotos.length > 0)
+                    ? `<img src="${p.fotos[0]}" alt="${p.nome}" class="card-img">`
+                    : `<div class="card-img-empty"><span>📷</span><p>Sem Imagem</p></div>`;
+
+                const materiaisStr = (p.materiais && p.materiais.length > 0) ? p.materiais.join(", ") : "—";
+                const pesoStr = p.pesoValor ? `${p.pesoValor} ${p.pesoUnidade || 'g'}` : "—";
+                const categoriaTag = p.categoria ? `<span class="cat-tag">${p.categoria}</span>` : '';
+
+                const medidasHTML = (p.medidas && p.medidas.length > 0)
+                    ? `<table class="med-table">
+                        <thead><tr><th>Medida</th><th>Valor</th><th>Un.</th></tr></thead>
+                        <tbody>${p.medidas.map(m => `<tr><td>${m.nome}</td><td><strong>${m.valor}</strong></td><td>${m.unidade}</td></tr>`).join('')}</tbody>
+                       </table>`
+                    : `<p class="sem-medida">Nenhuma medida cadastrada.</p>`;
+
+                const obsHTML = (p.observacao && p.observacao.trim())
+                    ? `<div class="obs-box"><strong>Observação:</strong> ${p.observacao}</div>` : '';
+
+                return `
+                <div class="card">
+                    <div class="card-photo-col">
+                        ${fotoHTML}
+                        <div class="card-num">#${String(idx+1).padStart(2,'0')}</div>
+                    </div>
+                    <div class="card-info-col">
+                        <div class="card-header-row">
+                            <div>
+                                <h2 class="card-name">${p.nome || 'Sem Nome'}</h2>
+                                <span class="card-code">Cód: ${p.codigo || '—'}</span>
+                                ${categoriaTag}
+                            </div>
+                        </div>
+                        <div class="card-specs">
+                            <div class="spec-item"><span class="spec-label">Material</span><span class="spec-value">${materiaisStr}</span></div>
+                            <div class="spec-item"><span class="spec-label">Peso</span><span class="spec-value">${pesoStr}</span></div>
+                            ${p.fornecedor ? `<div class="spec-item"><span class="spec-label">Fornecedor</span><span class="spec-value">${p.fornecedor}</span></div>` : ''}
+                        </div>
+                        ${medidasHTML}
+                        ${obsHTML}
+                    </div>
+                </div>`;
+            }).join('');
+
+            const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catálogo Técnico de Peças</title>
+<style>
+    :root {
+        --primary: #2563eb;
+        --primary-light: #eff6ff;
+        --text: #0f172a;
+        --text-secondary: #64748b;
+        --border: #e2e8f0;
+        --bg: #f8fafc;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); }
+
+    /* CAPA */
+    .capa {
+        background: linear-gradient(135deg, #1e3a6e 0%, #2563eb 60%, #3b82f6 100%);
+        color: white;
+        padding: 4rem 3rem;
+        min-height: 28vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        border-radius: 0 0 24px 24px;
+        margin-bottom: 2rem;
+    }
+    .capa-tag { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; opacity: 0.7; margin-bottom: 0.5rem; }
+    .capa h1 { font-size: 2.2rem; font-weight: 800; line-height: 1.2; margin-bottom: 0.5rem; }
+    .capa-meta { font-size: 0.9rem; opacity: 0.75; margin-top: 1rem; display: flex; gap: 2rem; flex-wrap: wrap; }
+    .capa-meta span { display: flex; align-items: center; gap: 0.3rem; }
+
+    /* CARDS */
+    .catalogo { padding: 0 1.5rem 3rem; max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem; }
+
+    .card {
+        background: white;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: 200px 1fr;
+        box-shadow: 0 2px 8px rgba(15,23,42,0.06);
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+
+    /* Foto */
+    .card-photo-col {
+        background: #1e293b;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        min-height: 180px;
+    }
+    .card-img { width: 100%; height: 200px; object-fit: contain; padding: 0.5rem; }
+    .card-img-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; color: #475569; height: 200px; }
+    .card-img-empty span { font-size: 2rem; }
+    .card-img-empty p { font-size: 0.75rem; }
+    .card-num {
+        position: absolute; bottom: 0.5rem; right: 0.6rem;
+        font-size: 0.7rem; font-weight: 700; color: rgba(255,255,255,0.35);
+        letter-spacing: 0.05em;
+    }
+
+    /* Info col */
+    .card-info-col { padding: 1.2rem 1.4rem; display: flex; flex-direction: column; gap: 0.75rem; }
+    .card-header-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; }
+    .card-name { font-size: 1.05rem; font-weight: 800; color: var(--text); line-height: 1.3; }
+    .card-code { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); display: inline-block; margin-top: 0.2rem; }
+    .cat-tag {
+        display: inline-block; margin-left: 0.5rem;
+        background: var(--primary-light); color: var(--primary);
+        font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+        padding: 0.15rem 0.5rem; border-radius: 20px; border: 1px solid #bfdbfe;
+    }
+
+    /* Specs */
+    .card-specs { display: flex; flex-direction: column; gap: 0.3rem; }
+    .spec-item { display: flex; align-items: baseline; gap: 0.5rem; font-size: 0.83rem; }
+    .spec-label { font-weight: 700; color: var(--text-secondary); min-width: 70px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .spec-value { color: var(--text); }
+
+    /* Tabela de medidas */
+    .med-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 0.25rem; }
+    .med-table thead { background: #f1f5f9; }
+    .med-table th { padding: 0.35rem 0.6rem; text-align: left; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); font-weight: 700; border-bottom: 1px solid var(--border); }
+    .med-table td { padding: 0.3rem 0.6rem; border-bottom: 1px solid #f1f5f9; color: var(--text); }
+    .med-table tbody tr:last-child td { border-bottom: none; }
+    .med-table strong { color: var(--primary); font-weight: 700; }
+    .sem-medida { font-size: 0.78rem; color: var(--text-secondary); font-style: italic; }
+
+    /* Obs */
+    .obs-box { background: #fefce8; border: 1px solid #fef08a; border-radius: 8px; padding: 0.5rem 0.75rem; font-size: 0.78rem; color: #713f12; line-height: 1.4; }
+
+    /* RODAPÉ */
+    .rodape { text-align: center; padding: 1.5rem; font-size: 0.75rem; color: var(--text-secondary); border-top: 1px solid var(--border); margin-top: 1rem; }
+
+    /* BOTÃO IMPRIMIR */
+    .print-bar {
+        position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 999;
+        display: flex; gap: 0.5rem;
+    }
+    .btn-print {
+        background: var(--primary); color: white; border: none;
+        padding: 0.85rem 1.4rem; border-radius: 50px;
+        font-size: 0.9rem; font-weight: 700; cursor: pointer;
+        box-shadow: 0 4px 16px rgba(37,99,235,0.4);
+        display: flex; align-items: center; gap: 0.5rem;
+        transition: background 0.2s;
+    }
+    .btn-print:hover { background: #1d4ed8; }
+    .btn-close-bar {
+        background: white; color: var(--text-secondary); border: 1px solid var(--border);
+        padding: 0.85rem 1rem; border-radius: 50px;
+        font-size: 0.85rem; font-weight: 600; cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    @media print {
+        .print-bar { display: none !important; }
+        body { background: white; }
+        .capa { border-radius: 0; }
+        .card { box-shadow: none; border-color: #ccc; }
+        @page { margin: 1.5cm; }
+    }
+
+    @media (max-width: 600px) {
+        .card { grid-template-columns: 1fr; }
+        .card-photo-col { min-height: 160px; }
+        .card-img { height: 160px; }
+        .capa { padding: 2.5rem 1.5rem; }
+        .capa h1 { font-size: 1.6rem; }
+        .catalogo { padding: 0 0.75rem 3rem; }
+    }
+</style>
+</head>
+<body>
+
+<div class="capa">
+    <div class="capa-tag">Catálogo Técnico</div>
+    <h1>Catálogo de Peças</h1>
+    <div class="capa-meta">
+        <span>📦 ${pecas.length} ${pecas.length === 1 ? 'peça registrada' : 'peças registradas'}</span>
+        <span>📅 Gerado em ${dataFormatada}</span>
+    </div>
+</div>
+
+<div class="catalogo">
+    ${cardsHTML}
+</div>
+
+<div class="rodape">
+    Catálogo gerado automaticamente pelo Catálogo Técnico PWA — ${dataFormatada}
+</div>
+
+<div class="print-bar">
+    <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
+    <button class="btn-close-bar" onclick="window.close()">✕ Fechar</button>
+</div>
+
+</body>
+</html>`;
+
+            const novaAba = window.open('', '_blank');
+            if (novaAba) {
+                novaAba.document.write(html);
+                novaAba.document.close();
+            } else {
+                alert("O navegador bloqueou a abertura da nova aba. Permita pop-ups para este site e tente novamente.");
             }
         }
 
