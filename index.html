@@ -1816,7 +1816,7 @@
                 const item = document.createElement("div");
                 item.classList.add("search-item");
                 item.dataset.id = p.id;
-                item.style.cursor = "grab";
+                item.style.cursor = "default";
 
                 let thumbHTML = `<div class="search-item-thumb-empty">S/ Foto</div>`;
                 if (p.fotos && p.fotos.length > 0) {
@@ -1824,21 +1824,18 @@
                 }
 
                 item.innerHTML = `
-                    <span style="font-size:1.1rem;color:#94a3b8;padding-right:0.25rem;flex-shrink:0;cursor:grab;">⠿</span>
+                    <span class="drag-handle" style="font-size:1.15rem;color:#94a3b8;padding:0 0.4rem 0 0.1rem;flex-shrink:0;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;">⠿</span>
                     ${thumbHTML}
                     <div style="flex:1; min-width:0;">
                         <div style="font-weight:600; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.nome}</div>
                         <div style="font-size:0.75rem; color:var(--text-secondary); font-weight:500;">Código: ${p.codigo || '--'}</div>
                     </div>
-                    <div style="font-size:0.8rem; font-weight:700; color:var(--primary); flex-shrink:0;">#${idx + 1}</div>
+                    <div class="item-numero" style="font-size:0.8rem; font-weight:700; color:var(--primary); flex-shrink:0;">#${idx + 1}</div>
                 `;
 
-                // Clique navega para a peça (só se não foi drag)
-                let dragging = false;
-                item.addEventListener("mousedown", () => { dragging = false; });
-                item.addEventListener("mousemove", () => { dragging = true; });
-                item.addEventListener("click", () => {
-                    if (dragging) return;
+                // Clique navega para a peça — ignora se o toque foi no handle de drag
+                item.addEventListener("click", (e) => {
+                    if (e.target.classList.contains("drag-handle")) return;
                     currentIndex = pecas.findIndex(orig => orig.id === p.id);
                     renderizarPecaAtual();
                     closeModal("listModal");
@@ -1847,24 +1844,24 @@
                 container.appendChild(item);
             });
 
-            // Drag-and-drop com SortableJS
+            // Drag-and-drop com SortableJS — apenas pelo handle ⠿
             if (window.Sortable) {
                 new Sortable(container, {
                     animation: 150,
-                    handle: "div",
+                    handle: ".drag-handle",   // ← só o ícone ⠿ ativa o drag
                     ghostClass: "drag-over",
-                    onEnd: function(evt) {
+                    onEnd: function() {
                         // Reordenar array de peças conforme nova posição visual
                         const ids = Array.from(container.querySelectorAll(".search-item"))
                             .map(el => parseInt(el.dataset.id));
                         const pecasOrdenadas = ids.map(id => pecas.find(p => p.id === id));
 
                         // Atualizar numeração visual
-                        container.querySelectorAll(".search-item").forEach((el, i) => {
-                            el.querySelector("div:last-child").textContent = `#${i + 1}`;
+                        container.querySelectorAll(".search-item .item-numero").forEach((el, i) => {
+                            el.textContent = `#${i + 1}`;
                         });
 
-                        // Persistir nova ordem no IndexedDB usando campo "ordem"
+                        // Persistir nova ordem no IndexedDB
                         const tx = db.transaction("pecas", "readwrite");
                         const store = tx.objectStore("pecas");
                         pecasOrdenadas.forEach((p, i) => {
