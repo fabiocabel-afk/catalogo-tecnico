@@ -1041,12 +1041,14 @@
                 <div class="backup-meta-box">
                     <div>Último Backup Exportado: <strong id="lblUltimoBackup">--</strong></div>
                     <div>Última Restauração Ficheiro: <strong id="lblUltimoRestauro">--</strong></div>
+                    <div id="lblTamanhoEstimado" style="margin-top:4px; font-size:0.78rem; color:#64748b;"></div>
                 </div>
-                <button class="backup-btn backup-btn-export" onclick="exportarDadosSistema()">📤 Exportar Ficheiro de Backup</button>
+                <button class="backup-btn backup-btn-export" onclick="exportarDadosSistema()">📤 Exportar Backup (com compressão)</button>
                 <div style="position:relative; width:100%;">
                     <button class="backup-btn backup-btn-import">📥 Restaurar de um Ficheiro</button>
                     <input type="file" id="importFileInput" accept=".json" onchange="processarFicheiroBackupInput(this)" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer;">
                 </div>
+                <button class="backup-btn" id="btnRecomprimir" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;" onclick="recomprimirFotosExistentes()">🗜️ Otimizar Fotos Existentes</button>
                 <button class="backup-btn backup-btn-danger" onclick="limparTodoOSistemaComAviso()">🗑️ Redefinir Sistema de Fábrica</button>
             </div>
             <div style="display: flex; justify-content: center; margin-top: 1.2rem;">
@@ -1713,6 +1715,8 @@
                 gerarCatalogoVisual();
             } else if (opcao === 'backup') {
                 openModal("backupModal");
+                carregarMetadadosLayoutBackup();
+                calcularTamanhoEstimado();
             } else if (opcao === 'novo') {
                 configurarFormCadastro(null);
             } else if (opcao === 'compartilhar') {
@@ -2130,18 +2134,61 @@
             container.appendChild(row);
         }
 
+        // ── COMPRESSÃO DE IMAGEM ──────────────────────────────────────────
+        // Reduz a imagem para no máximo maxW x maxH e recodifica como JPEG
+        // com a qualidade definida (0.0 – 1.0). Retorna uma Promise<dataURL>.
+        function comprimirImagem(dataURL, maxW, maxH, qualidade) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = function () {
+                    let w = img.width, h = img.height;
+
+                    // Redimensionar mantendo proporção
+                    if (w > maxW || h > maxH) {
+                        const ratio = Math.min(maxW / w, maxH / h);
+                        w = Math.round(w * ratio);
+                        h = Math.round(h * ratio);
+                    }
+
+                    const canvas = document.createElement("canvas");
+                    canvas.width  = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext("2d");
+                    ctx.drawImage(img, 0, 0, w, h);
+                    resolve(canvas.toDataURL("image/jpeg", qualidade));
+                };
+                img.onerror = () => resolve(dataURL); // fallback sem compressão
+                img.src = dataURL;
+            });
+        }
+
+        // Configurações de compressão
+        const COMP_ARMAZENAMENTO = { maxW: 1200, maxH: 1200, q: 0.72 }; // ao adicionar foto
+        const COMP_BACKUP        = { maxW: 900,  maxH: 900,  q: 0.60 }; // ao exportar backup
+
         function previewImagensSelecionadas(input) {
             if (!input.files || input.files.length === 0) return;
 
-            Array.from(input.files).forEach(file => {
+            const files = Array.from(input.files);
+            let processados = 0;
+
+            files.forEach(file => {
                 const reader = new FileReader();
-                reader.onload = function(e) {
-                    fotosTemporariasCadastro.push(e.target.result);
-                    renderizarGridFotosCadastro();
+                reader.onload = async function(e) {
+                    // Comprimir ao armazenar — mantém boa qualidade mas já reduz tamanho
+                    const comprimida = await comprimirImagem(
+                        e.target.result,
+                        COMP_ARMAZENAMENTO.maxW,
+                        COMP_ARMAZENAMENTO.maxH,
+                        COMP_ARMAZENAMENTO.q
+                    );
+                    fotosTemporariasCadastro.push(comprimida);
+                    processados++;
+                    if (processados === files.length) renderizarGridFotosCadastro();
                 };
                 reader.readAsDataURL(file);
             });
-            input.value = ""; 
+            input.value = "";
         }
 
         function renderizarGridFotosCadastro() {
@@ -2265,44 +2312,69 @@
             if(rest) document.getElementById("lblUltimoRestauro").textContent = rest;
         }
 
-        function exportarDadosSistema() {
+        async function exportarDadosSistema() {
+            // ── 1. Ler banco de dados ──
             const tx = db.transaction(["pecas", "nomesMedidas", "categorias", "materiais"], "readonly");
-            
+
             let backupObj = {
-                versaoBackup: 2,
+                versaoBackup: 3,
                 exportadoEm: "",
-                pecas: [],
-                nomesMedidas: [],
-                categorias: [],
-                materiais: []
+                comprimido: true,
+                pecas: [], nomesMedidas: [], categorias: [], materiais: []
             };
 
-            tx.objectStore("pecas").getAll().onsuccess = (e) => backupObj.pecas = e.target.result || [];
-            tx.objectStore("nomesMedidas").getAll().onsuccess = (e) => backupObj.nomesMedidas = e.target.result || [];
-            tx.objectStore("categorias").onsuccess = (e) => backupObj.categorias = e.target.result || [];
-            
-            const storeCats = tx.objectStore("categorias");
-            storeCats.getAll().onsuccess = (e) => backupObj.categorias = e.target.result || [];
-            
-            const storeMats = tx.objectStore("materiais");
-            storeMats.getAll().onsuccess = (e) => backupObj.materiais = e.target.result || [];
+            await new Promise(res => {
+                tx.objectStore("pecas").getAll().onsuccess = (e) => { backupObj.pecas = e.target.result || []; };
+                tx.objectStore("nomesMedidas").getAll().onsuccess = (e) => { backupObj.nomesMedidas = e.target.result || []; };
+                tx.objectStore("categorias").getAll().onsuccess = (e) => { backupObj.categorias = e.target.result || []; };
+                tx.objectStore("materiais").getAll().onsuccess = (e) => { backupObj.materiais = e.target.result || []; };
+                tx.oncomplete = () => res();
+            });
 
-            tx.oncomplete = () => {
-                const d = new Date();
-                const strData = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
-                backupObj.exportadoEm = strData;
+            // ── 2. Comprimir imagens para o backup ──
+            const totalFotos = backupObj.pecas.reduce((acc, p) => acc + (p.fotos ? p.fotos.length : 0), 0);
 
-                const blob = new Blob([JSON.stringify(backupObj, null, 2)], { type: "application/json" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `backup_catalogo_pwa_${d.getFullYear()}_${(d.getMonth()+1).toString().padStart(2,'0')}_${d.getDate().toString().padStart(2,'0')}.json`;
-                a.click();
+            if (totalFotos > 0) {
+                // Mostra progresso discreto no botão de exportar
+                const btnExp = document.querySelector(".backup-btn-export");
+                const textoOriginal = btnExp ? btnExp.textContent : "";
+                let fotoProcessada = 0;
 
-                localStorage.setItem("backup_ultimo_exportado", strData);
-                carregarMetadadosLayoutBackup();
-                alert("Ficheiro de backup gerado com sucesso!");
-            };
+                for (const peca of backupObj.pecas) {
+                    if (peca.fotos && peca.fotos.length > 0) {
+                        const fotosComprimidas = [];
+                        for (const foto of peca.fotos) {
+                            const c = await comprimirImagem(foto, COMP_BACKUP.maxW, COMP_BACKUP.maxH, COMP_BACKUP.q);
+                            fotosComprimidas.push(c);
+                            fotoProcessada++;
+                            if (btnExp) btnExp.textContent = `⏳ Comprimindo… ${fotoProcessada}/${totalFotos}`;
+                        }
+                        peca.fotos = fotosComprimidas;
+                    }
+                }
+                if (btnExp) btnExp.textContent = textoOriginal;
+            }
+
+            // ── 3. Gerar arquivo ──
+            const d = new Date();
+            const strData = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+            backupObj.exportadoEm = strData;
+
+            // JSON minificado (sem espaços/tabs) — economiza ~20% a mais
+            const blob = new Blob([JSON.stringify(backupObj)], { type: "application/json" });
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement("a");
+            a.href = url;
+            a.download = `backup_catalogo_pwa_${d.getFullYear()}_${(d.getMonth()+1).toString().padStart(2,'0')}_${d.getDate().toString().padStart(2,'0')}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            localStorage.setItem("backup_ultimo_exportado", strData);
+            carregarMetadadosLayoutBackup();
+
+            // Tamanho estimado
+            const kb = Math.round(blob.size / 1024);
+            alert(`✅ Backup gerado com sucesso!\nTamanho: ${kb < 1024 ? kb + ' KB' : (kb/1024).toFixed(1) + ' MB'}`);
         }
 
         function processarFicheiroBackupInput(input) {
@@ -2334,6 +2406,8 @@
 
             if(metodo === 'total') {
                 if(confirm("⚠️ ATENÇÃO CRÍTICA:\\nEsta ação apagará TODAS as peças e configurações locais atuais para restaurar exatamente o arquivo. Deseja prosseguir?")) {
+                    // Comprimir imagens do backup antes de salvar
+                    backupDataCarregadaImport = await comprimirImagensBackup(backupDataCarregadaImport);
                     await executarLimpezaBancoDados();
                     await salvarDadosImportacaoTotal(backupDataCarregadaImport);
                     
@@ -2346,8 +2420,35 @@
                     alert("Restauração total concluída com sucesso!");
                 }
             } else if(metodo === 'incremental') {
+                // Comprimir imagens antes de mostrar a lista incremental
+                backupDataCarregadaImport = await comprimirImagensBackup(backupDataCarregadaImport);
                 montarListaFiltroIncremental();
             }
+        }
+
+        // Comprime todas as imagens de um objeto de backup em memória
+        async function comprimirImagensBackup(data) {
+            if (!data || !data.pecas) return data;
+            // Não recomprimir se o backup já foi gerado com versão 3 (já comprimido)
+            if (data.comprimido && data.versaoBackup >= 3) return data;
+
+            const totalFotos = data.pecas.reduce((acc, p) => acc + (p.fotos ? p.fotos.length : 0), 0);
+            if (totalFotos === 0) return data;
+
+            let feitas = 0;
+            for (const peca of data.pecas) {
+                if (peca.fotos && peca.fotos.length > 0) {
+                    const novasFotos = [];
+                    for (const foto of peca.fotos) {
+                        const c = await comprimirImagem(foto, COMP_BACKUP.maxW, COMP_BACKUP.maxH, COMP_BACKUP.q);
+                        novasFotos.push(c);
+                        feitas++;
+                    }
+                    peca.fotos = novasFotos;
+                }
+            }
+            data.comprimido = true;
+            return data;
         }
 
         function salvarDadosImportacaoTotal(data) {
@@ -2864,6 +2965,69 @@ body {
             } else {
                 alert("O navegador bloqueou a abertura da nova aba. Permita pop-ups para este site e tente novamente.");
             }
+        }
+
+        // ── RECOMPRIMIR FOTOS JÁ ARMAZENADAS ─────────────────────────────
+        // Percorre todas as peças no banco e recomprime cada foto.
+        // Útil para reduzir fotos importadas de backups antigos.
+        async function recomprimirFotosExistentes() {
+            if (!confirm("🗜️ Isso vai recomprimir TODAS as fotos armazenadas para economizar espaço.\n\nO processo pode demorar alguns segundos. Continuar?")) return;
+
+            const btn = document.getElementById("btnRecomprimir");
+            const textoOriginal = btn.textContent;
+
+            // Ler todas as peças
+            const pecasLidas = await new Promise(res => {
+                const tx = db.transaction("pecas", "readonly");
+                tx.objectStore("pecas").getAll().onsuccess = e => res(e.target.result || []);
+            });
+
+            const totalFotos = pecasLidas.reduce((acc, p) => acc + (p.fotos ? p.fotos.length : 0), 0);
+            if (totalFotos === 0) { alert("Nenhuma foto encontrada."); return; }
+
+            let feitas = 0;
+
+            for (const peca of pecasLidas) {
+                if (!peca.fotos || peca.fotos.length === 0) continue;
+
+                const novasFotos = [];
+                for (const foto of peca.fotos) {
+                    const c = await comprimirImagem(foto, COMP_ARMAZENAMENTO.maxW, COMP_ARMAZENAMENTO.maxH, COMP_ARMAZENAMENTO.q);
+                    novasFotos.push(c);
+                    feitas++;
+                    btn.textContent = `⏳ ${feitas}/${totalFotos} fotos…`;
+                }
+                peca.fotos = novasFotos;
+
+                // Salvar peça atualizada
+                await new Promise(res => {
+                    const tx2 = db.transaction("pecas", "readwrite");
+                    tx2.objectStore("pecas").put(peca);
+                    tx2.oncomplete = () => res();
+                });
+            }
+
+            btn.textContent = textoOriginal;
+            carregarPecas(); // recarregar viewer com fotos atualizadas
+            calcularTamanhoEstimado();
+            alert(`✅ ${totalFotos} foto(s) otimizada(s) com sucesso!`);
+        }
+
+        // Estima o tamanho total das imagens no banco
+        function calcularTamanhoEstimado() {
+            const tx = db.transaction("pecas", "readonly");
+            tx.objectStore("pecas").getAll().onsuccess = function(e) {
+                const todas = e.target.result || [];
+                let totalBytes = 0;
+                todas.forEach(p => {
+                    if (p.fotos) p.fotos.forEach(f => { totalBytes += (f.length * 3 / 4); }); // base64 → bytes
+                });
+                const el = document.getElementById("lblTamanhoEstimado");
+                if (el) {
+                    const mb = (totalBytes / 1024 / 1024).toFixed(1);
+                    el.textContent = `Tamanho estimado das fotos: ~${mb} MB`;
+                }
+            };
         }
 
         window.onload = initDB;
