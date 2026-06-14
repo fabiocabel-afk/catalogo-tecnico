@@ -1230,8 +1230,8 @@
 
         const dbName = "CatalogoTecnicoDB";
         const dbVersion = 2; 
-        let touchStartX = 0;
-        let touchEndX = 0;
+        let touchStartX = 0, touchStartY = 0;
+        let touchEndX = 0, touchEndY = 0;
         let backupDataCarregadaImport = null;
 
         function toggleMenu() {
@@ -1540,7 +1540,11 @@
         function carregarPecas() {
             const tx = db.transaction("pecas", "readonly");
             tx.objectStore("pecas").getAll().onsuccess = function(e) {
-                pecas = e.target.result || [];
+                pecas = (e.target.result || []).sort((a, b) => {
+                    const oa = (a.ordem !== undefined) ? a.ordem : a.id;
+                    const ob = (b.ordem !== undefined) ? b.ordem : b.id;
+                    return oa - ob;
+                });
                 if (pecas.length > 0) {
                     if (currentIndex >= pecas.length) currentIndex = pecas.length - 1;
                     if (currentIndex < 0) currentIndex = 0;
@@ -1600,8 +1604,8 @@
                     const tr = document.createElement("tr");
                     tr.innerHTML = `
                         <td style="font-weight: 500;">${m.nome}</td>
-                        <td style="color: var(--primary); font-weight: 700;">${m.valor}</td>
-                        <td style="color: var(--text-secondary); font-size: 0.85rem;">${m.unidade}</td>
+                        <td style="color: var(--primary); font-weight: 700; text-align: center;">${m.valor}</td>
+                        <td style="color: var(--text-secondary); font-size: 0.85rem; text-align: center;">${m.unidade}</td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -1663,21 +1667,32 @@
         }
 
         const imgViewer = document.getElementById("imageViewer");
+
         imgViewer.addEventListener("touchstart", e => {
             touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
         }, { passive: true });
 
         imgViewer.addEventListener("touchend", e => {
             touchEndX = e.changedTouches[0].screenX;
+            touchEndY = e.changedTouches[0].screenY;
             handleSwipeGesture();
         }, { passive: true });
 
         function handleSwipeGesture() {
-            const limiar = 50; 
-            if (touchStartX - touchEndX > limiar) {
-                mudarFoto(1);
-            } else if (touchEndX - touchStartX > limiar) {
-                mudarFoto(-1);
+            const dx = touchStartX - touchEndX;
+            const dy = touchStartY - touchEndY;
+            const limiar = 50;
+
+            // Determinar se o gesto é mais horizontal ou vertical
+            if (Math.abs(dx) > Math.abs(dy)) {
+                // Horizontal → navega entre fotos
+                if (dx > limiar) mudarFoto(1);
+                else if (dx < -limiar) mudarFoto(-1);
+            } else {
+                // Vertical → navega entre peças
+                if (dy > limiar) mudarPeca(1);
+                else if (dy < -limiar) mudarPeca(-1);
             }
         }
 
@@ -1796,6 +1811,8 @@
             pecas.forEach((p, idx) => {
                 const item = document.createElement("div");
                 item.classList.add("search-item");
+                item.dataset.id = p.id;
+                item.style.cursor = "grab";
 
                 let thumbHTML = `<div class="search-item-thumb-empty">S/ Foto</div>`;
                 if (p.fotos && p.fotos.length > 0) {
@@ -1803,20 +1820,60 @@
                 }
 
                 item.innerHTML = `
+                    <span style="font-size:1.1rem;color:#94a3b8;padding-right:0.25rem;flex-shrink:0;cursor:grab;">⠿</span>
                     ${thumbHTML}
                     <div style="flex:1; min-width:0;">
                         <div style="font-weight:600; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.nome}</div>
                         <div style="font-size:0.75rem; color:var(--text-secondary); font-weight:500;">Código: ${p.codigo || '--'}</div>
                     </div>
-                    <div style="font-size:0.8rem; font-weight:700; color:var(--primary);">#${idx + 1}</div>
+                    <div style="font-size:0.8rem; font-weight:700; color:var(--primary); flex-shrink:0;">#${idx + 1}</div>
                 `;
-                item.onclick = () => {
-                    currentIndex = idx;
+
+                // Clique navega para a peça (só se não foi drag)
+                let dragging = false;
+                item.addEventListener("mousedown", () => { dragging = false; });
+                item.addEventListener("mousemove", () => { dragging = true; });
+                item.addEventListener("click", () => {
+                    if (dragging) return;
+                    currentIndex = pecas.findIndex(orig => orig.id === p.id);
                     renderizarPecaAtual();
                     closeModal("listModal");
-                };
+                });
+
                 container.appendChild(item);
             });
+
+            // Drag-and-drop com SortableJS
+            if (window.Sortable) {
+                new Sortable(container, {
+                    animation: 150,
+                    handle: "div",
+                    ghostClass: "drag-over",
+                    onEnd: function(evt) {
+                        // Reordenar array de peças conforme nova posição visual
+                        const ids = Array.from(container.querySelectorAll(".search-item"))
+                            .map(el => parseInt(el.dataset.id));
+                        const pecasOrdenadas = ids.map(id => pecas.find(p => p.id === id));
+
+                        // Atualizar numeração visual
+                        container.querySelectorAll(".search-item").forEach((el, i) => {
+                            el.querySelector("div:last-child").textContent = `#${i + 1}`;
+                        });
+
+                        // Persistir nova ordem no IndexedDB usando campo "ordem"
+                        const tx = db.transaction("pecas", "readwrite");
+                        const store = tx.objectStore("pecas");
+                        pecasOrdenadas.forEach((p, i) => {
+                            store.put({ ...p, ordem: i });
+                        });
+                        tx.oncomplete = () => {
+                            pecas = pecasOrdenadas.map((p, i) => ({ ...p, ordem: i }));
+                            if (currentIndex >= pecas.length) currentIndex = pecas.length - 1;
+                            renderizarPecaAtual();
+                        };
+                    }
+                });
+            }
 
             openModal("listModal");
         }
@@ -1838,6 +1895,7 @@
         function _montarTextoFicha(peca) {
             let str = `*Peça:* ${peca.nome}\n`;
             str += `*Código:* ${peca.codigo || '--'}\n`;
+            str += `\n`;
 
             const mats = (peca.materiais && peca.materiais.length > 0) ? peca.materiais.join(", ") : null;
             if (mats) str += `*Material:* ${mats}\n`;
@@ -1848,7 +1906,7 @@
             if (peca.medidas && peca.medidas.length > 0) {
                 str += `\n*MEDIDAS:*\n`;
                 peca.medidas.forEach(m => {
-                    str += `◆ ${m.nome}: ${m.valor} ${m.unidade}\n`;
+                    str += `◆ *${m.nome}:* ${m.valor} ${m.unidade}\n`;
                 });
             }
 
@@ -2017,11 +2075,40 @@
             inputVal.value = valor;
             inputVal.required = true;
 
-            const inputUn = document.createElement("input");
-            inputUn.type = "text";
-            inputUn.placeholder = "Unid";
-            inputUn.value = unidade;
+            const inputUn = document.createElement("select");
             inputUn.required = true;
+            const unidades = [
+                "mm", "cm", "dm", "m", "km",
+                "pol", "ft", "yd",
+                "mm²", "cm²", "m²",
+                "mm³", "cm³", "m³", "mL", "L",
+                "mg", "g", "kg", "t",
+                "°", "rad",
+                "N", "kN",
+                "Pa", "kPa", "MPa", "bar", "kgf/cm²",
+                "N·m", "kgf·m",
+                "RPM", "Hz",
+                "A", "V", "W", "kW", "Ω",
+                "°C", "°F", "K",
+                "HB", "HRC", "HRB", "HV",
+                "Ra", "Rz",
+                "%", "ppm", "un"
+            ];
+            unidades.forEach(u => {
+                const opt = document.createElement("option");
+                opt.value = u;
+                opt.textContent = u;
+                if (u === unidade) opt.selected = true;
+                inputUn.appendChild(opt);
+            });
+            // Se a unidade salva não está na lista, adicionar como opção
+            if (!unidades.includes(unidade) && unidade) {
+                const opt = document.createElement("option");
+                opt.value = unidade;
+                opt.textContent = unidade;
+                opt.selected = true;
+                inputUn.appendChild(opt);
+            }
 
             const btnDel = document.createElement("button");
             btnDel.type = "button";
@@ -2492,7 +2579,6 @@
                         <div class="card-specs">
                             <div class="spec-item"><span class="spec-label">Material</span><span class="spec-value">${materiaisStr}</span></div>
                             <div class="spec-item"><span class="spec-label">Peso</span><span class="spec-value">${pesoStr}</span></div>
-                            ${p.fornecedor ? `<div class="spec-item"><span class="spec-label">Fornecedor</span><span class="spec-value">${p.fornecedor}</span></div>` : ''}
                         </div>
                         ${medidasHTML}
                         ${obsHTML}
