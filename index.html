@@ -2546,41 +2546,44 @@
             const cardsHTML = pecas.map((p, idx) => {
                 const fotoHTML = (p.fotos && p.fotos.length > 0)
                     ? `<img src="${p.fotos[0]}" alt="${p.nome}" class="card-img">`
-                    : `<div class="card-img-empty"><span>📷</span><p>Sem Imagem</p></div>`;
+                    : `<div class="card-img-empty"><div class="no-img-icon">◻</div></div>`;
 
-                const materiaisStr = (p.materiais && p.materiais.length > 0) ? p.materiais.join(", ") : "—";
+                const materiaisStr = (p.materiais && p.materiais.length > 0) ? p.materiais.join(" · ") : "—";
                 const pesoStr = p.pesoValor ? `${p.pesoValor} ${p.pesoUnidade || 'g'}` : "—";
-                const categoriaTag = p.categoria ? `<span class="cat-tag">${p.categoria}</span>` : '';
+                const catLabel = p.categoria || '';
 
-                const medidasHTML = (p.medidas && p.medidas.length > 0)
-                    ? `<table class="med-table">
-                        <thead><tr><th>Medida</th><th>Valor</th><th>Un.</th></tr></thead>
-                        <tbody>${p.medidas.map(m => `<tr><td>${m.nome}</td><td><strong>${m.valor}</strong></td><td>${m.unidade}</td></tr>`).join('')}</tbody>
-                       </table>`
-                    : `<p class="sem-medida">Nenhuma medida cadastrada.</p>`;
+                const medidasRows = (p.medidas && p.medidas.length > 0)
+                    ? p.medidas.map((m, mi) => `<tr class="${mi % 2 === 0 ? 'row-even' : 'row-odd'}"><td class="med-nome">${m.nome}</td><td class="med-valor">${m.valor}</td><td class="med-unid">${m.unidade}</td></tr>`).join('')
+                    : `<tr><td colspan="3" class="med-vazia">—</td></tr>`;
 
                 const obsHTML = (p.observacao && p.observacao.trim())
-                    ? `<div class="obs-box"><strong>Observação:</strong> ${p.observacao}</div>` : '';
+                    ? `<div class="obs-box"><span class="obs-label">OBS</span>${p.observacao.trim()}</div>` : '';
 
-                return `
-                <div class="card">
-                    <div class="card-photo-col">
+                const numStr = String(idx + 1).padStart(2, '0');
+
+                return `<div class="card">
+                    <div class="card-left">
+                        <div class="card-badge">${numStr}</div>
                         ${fotoHTML}
-                        <div class="card-num">#${String(idx+1).padStart(2,'0')}</div>
+                        ${catLabel ? `<div class="card-cat">${catLabel}</div>` : ''}
                     </div>
-                    <div class="card-info-col">
-                        <div class="card-header-row">
-                            <div>
-                                <h2 class="card-name">${p.nome || 'Sem Nome'}</h2>
-                                <span class="card-code">Cód: ${p.codigo || '—'}</span>
-                                ${categoriaTag}
-                            </div>
+                    <div class="card-right">
+                        <div class="card-top-bar">
+                            <div class="card-nome">${p.nome || 'Sem Nome'}</div>
+                            <div class="card-codigo"><span class="codigo-label">CÓD</span><span class="codigo-valor">${p.codigo || '—'}</span></div>
                         </div>
-                        <div class="card-specs">
-                            <div class="spec-item"><span class="spec-label">Material</span><span class="spec-value">${materiaisStr}</span></div>
-                            <div class="spec-item"><span class="spec-label">Peso</span><span class="spec-value">${pesoStr}</span></div>
+                        <div class="card-meta-row">
+                            <span class="meta-item"><span class="meta-label">Material</span> ${materiaisStr}</span>
+                            <span class="meta-sep"> · </span>
+                            <span class="meta-item"><span class="meta-label">Peso</span> ${pesoStr}</span>
                         </div>
-                        ${medidasHTML}
+                        <div class="med-section">
+                            <div class="med-section-title"><span class="med-title-line"></span><span class="med-title-text">MEDIDAS</span><span class="med-title-line"></span></div>
+                            <table class="med-table">
+                                <thead><tr><th>Dimensão</th><th class="th-center">Valor</th><th class="th-center">Un.</th></tr></thead>
+                                <tbody>${medidasRows}</tbody>
+                            </table>
+                        </div>
                         ${obsHTML}
                     </div>
                 </div>`;
@@ -2593,149 +2596,247 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Catálogo Técnico de Peças</title>
 <style>
-    :root {
-        --primary: #2563eb;
-        --primary-light: #eff6ff;
-        --text: #0f172a;
-        --text-secondary: #64748b;
-        --border: #e2e8f0;
-        --bg: #f8fafc;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+* { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
 
-    /* CAPA */
-    .capa {
-        background: linear-gradient(135deg, #1e3a6e 0%, #2563eb 60%, #3b82f6 100%);
-        color: white;
-        padding: 4rem 3rem;
-        min-height: 28vh;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        border-radius: 0 0 24px 24px;
-        margin-bottom: 2rem;
-    }
-    .capa-tag { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; opacity: 0.7; margin-bottom: 0.5rem; }
-    .capa h1 { font-size: 2.2rem; font-weight: 800; line-height: 1.2; margin-bottom: 0.5rem; }
-    .capa-meta { font-size: 0.9rem; opacity: 0.75; margin-top: 1rem; display: flex; gap: 2rem; flex-wrap: wrap; }
-    .capa-meta span { display: flex; align-items: center; gap: 0.3rem; }
+body {
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+    background: #eef2f7;
+    color: #0f172a;
+    font-size: 12px;
+    line-height: 1.4;
+}
 
-    /* CARDS */
-    .catalogo { padding: 0 1.5rem 3rem; max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem; }
+/* ── CAPA ── */
+.capa-wrapper {
+    background: linear-gradient(135deg, #0f2559 0%, #1e40af 55%, #3b82f6 100%);
+    margin-bottom: 1.2rem;
+    position: relative;
+    overflow: hidden;
+}
+.capa-wrapper::before {
+    content: '';
+    position: absolute; top: -50px; right: -50px;
+    width: 240px; height: 240px; border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+}
+.capa-inner {
+    position: relative; z-index: 1;
+    padding: 1.8rem 3rem 1.4rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+.capa-eyebrow {
+    font-size: 0.62rem; font-weight: 700; letter-spacing: 0.2em;
+    text-transform: uppercase; color: rgba(255,255,255,0.5); margin-bottom: 0.3rem;
+}
+.capa-titulo {
+    font-size: 1.9rem; font-weight: 900; color: #fff;
+    line-height: 1.05; letter-spacing: -0.02em;
+}
+.capa-subtitulo { font-size: 0.82rem; color: rgba(255,255,255,0.55); margin-top: 0.3rem; }
+.capa-right { display: flex; gap: 0.6rem; align-items: center; }
+.capa-stat {
+    background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 8px; padding: 0.4rem 0.85rem; text-align: center; min-width: 80px;
+}
+.capa-stat-num { font-size: 1.3rem; font-weight: 800; color: #fff; line-height: 1; }
+.capa-stat-label { font-size: 0.58rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-top: 0.1rem; }
+.capa-footer {
+    background: rgba(0,0,0,0.18); padding: 0.4rem 3rem;
+    font-size: 0.65rem; color: rgba(255,255,255,0.45); letter-spacing: 0.04em;
+    display: flex; justify-content: space-between;
+}
 
-    .card {
-        background: white;
-        border-radius: 16px;
-        border: 1px solid var(--border);
-        overflow: hidden;
-        display: grid;
-        grid-template-columns: 200px 1fr;
-        box-shadow: 0 2px 8px rgba(15,23,42,0.06);
-        page-break-inside: avoid;
-        break-inside: avoid;
-    }
+/* ── CATÁLOGO ── */
+.catalogo {
+    max-width: 960px; margin: 0 auto;
+    padding: 0 1.5rem 3rem;
+    display: flex; flex-direction: column; gap: 0.7rem;
+}
 
-    /* Foto */
-    .card-photo-col {
-        background: #1e293b;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-        min-height: 180px;
-    }
-    .card-img { width: 100%; height: 200px; object-fit: contain; padding: 0.5rem; }
-    .card-img-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; color: #475569; height: 200px; }
-    .card-img-empty span { font-size: 2rem; }
-    .card-img-empty p { font-size: 0.75rem; }
-    .card-num {
-        position: absolute; bottom: 0.5rem; right: 0.6rem;
-        font-size: 0.7rem; font-weight: 700; color: rgba(255,255,255,0.35);
-        letter-spacing: 0.05em;
-    }
+/* ── CARD ── */
+.card {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #dde3ed;
+    box-shadow: 0 2px 10px rgba(15,23,42,0.07);
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
 
-    /* Info col */
-    .card-info-col { padding: 1.2rem 1.4rem; display: flex; flex-direction: column; gap: 0.75rem; }
-    .card-header-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; }
-    .card-name { font-size: 1.05rem; font-weight: 800; color: var(--text); line-height: 1.3; }
-    .card-code { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); display: inline-block; margin-top: 0.2rem; }
-    .cat-tag {
-        display: inline-block; margin-left: 0.5rem;
-        background: var(--primary-light); color: var(--primary);
-        font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
-        padding: 0.15rem 0.5rem; border-radius: 20px; border: 1px solid #bfdbfe;
-    }
+/* ── COLUNA ESQUERDA ── */
+.card-left {
+    background: linear-gradient(160deg, #1e293b 0%, #0f172a 100%);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    position: relative;
+    min-height: 130px;
+    padding: 0.6rem 0.5rem 1.5rem;
+}
+.card-badge {
+    position: absolute; top: 0.45rem; left: 0.45rem;
+    width: 22px; height: 22px;
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 5px; display: flex; align-items: center; justify-content: center;
+    font-size: 0.58rem; font-weight: 800; color: rgba(255,255,255,0.6);
+}
+.card-img { width: 100%; max-height: 110px; object-fit: contain; }
+.card-img-empty {
+    display: flex; align-items: center; justify-content: center;
+    color: #334155; height: 90px;
+}
+.no-img-icon { font-size: 1.8rem; opacity: 0.25; }
+.card-cat {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: linear-gradient(90deg, #2563eb, #1d4ed8);
+    color: white; font-size: 0.55rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    text-align: center; padding: 0.22rem 0.4rem;
+}
 
-    /* Specs */
-    .card-specs { display: flex; flex-direction: column; gap: 0.3rem; }
-    .spec-item { display: flex; align-items: baseline; gap: 0.5rem; font-size: 0.83rem; }
-    .spec-label { font-weight: 700; color: var(--text-secondary); min-width: 70px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
-    .spec-value { color: var(--text); }
+/* ── COLUNA DIREITA ── */
+.card-right {
+    padding: 0.6rem 0.9rem;
+    display: flex; flex-direction: column; gap: 0.4rem;
+}
 
-    /* Tabela de medidas */
-    .med-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 0.25rem; }
-    .med-table thead { background: #f1f5f9; }
-    .med-table th { padding: 0.35rem 0.6rem; text-align: left; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); font-weight: 700; border-bottom: 1px solid var(--border); }
-    .med-table td { padding: 0.3rem 0.6rem; border-bottom: 1px solid #f1f5f9; color: var(--text); }
-    .med-table tbody tr:last-child td { border-bottom: none; }
-    .med-table strong { color: var(--primary); font-weight: 700; }
-    .sem-medida { font-size: 0.78rem; color: var(--text-secondary); font-style: italic; }
+/* Cabeçalho: nome + código na mesma linha */
+.card-top-bar {
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 0.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1.5px solid #f1f5f9;
+}
+.card-nome { font-size: 0.9rem; font-weight: 800; color: #0f172a; line-height: 1.2; flex: 1; }
+.card-codigo { display: flex; align-items: center; gap: 0.3rem; flex-shrink: 0; }
+.codigo-label { font-size: 0.52rem; font-weight: 800; letter-spacing: 0.12em; color: #94a3b8; text-transform: uppercase; }
+.codigo-valor { font-size: 0.75rem; font-weight: 700; color: #2563eb; letter-spacing: 0.03em; }
 
-    /* Obs */
-    .obs-box { background: #fefce8; border: 1px solid #fef08a; border-radius: 8px; padding: 0.5rem 0.75rem; font-size: 0.78rem; color: #713f12; line-height: 1.4; }
+/* Material + Peso numa única linha */
+.card-meta-row {
+    display: flex; align-items: center; gap: 0.4rem;
+    font-size: 0.72rem; color: #334155; flex-wrap: wrap;
+}
+.meta-label { font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; margin-right: 0.2rem; }
+.meta-sep { color: #cbd5e1; font-size: 0.8rem; }
 
-    /* RODAPÉ */
-    .rodape { text-align: center; padding: 1.5rem; font-size: 0.75rem; color: var(--text-secondary); border-top: 1px solid var(--border); margin-top: 1rem; }
+/* ── SEÇÃO MEDIDAS ── */
+.med-section { flex: 1; }
+.med-section-title {
+    display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.25rem;
+}
+.med-title-line { flex: 1; height: 1px; background: #e2e8f0; }
+.med-title-text { font-size: 0.54rem; font-weight: 800; letter-spacing: 0.16em; color: #94a3b8; text-transform: uppercase; white-space: nowrap; }
 
-    /* BOTÃO IMPRIMIR */
-    .print-bar {
-        position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 999;
-        display: flex; gap: 0.5rem;
-    }
-    .btn-print {
-        background: var(--primary); color: white; border: none;
-        padding: 0.85rem 1.4rem; border-radius: 50px;
-        font-size: 0.9rem; font-weight: 700; cursor: pointer;
-        box-shadow: 0 4px 16px rgba(37,99,235,0.4);
-        display: flex; align-items: center; gap: 0.5rem;
-        transition: background 0.2s;
-    }
-    .btn-print:hover { background: #1d4ed8; }
-    .btn-close-bar {
-        background: white; color: var(--text-secondary); border: 1px solid var(--border);
-        padding: 0.85rem 1rem; border-radius: 50px;
-        font-size: 0.85rem; font-weight: 600; cursor: pointer;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
+.med-table { width: 100%; border-collapse: collapse; font-size: 0.72rem; }
+.med-table thead { background: linear-gradient(90deg, #1e40af, #2563eb); }
+.med-table th {
+    padding: 0.22rem 0.5rem; font-size: 0.58rem; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.9);
+    text-align: left; border: none;
+}
+.th-center { text-align: center !important; }
+.row-even { background: #fff; }
+.row-odd  { background: #f8fafc; }
+.med-nome { padding: 0.2rem 0.5rem; font-weight: 600; color: #334155; border-right: 1px solid #f1f5f9; }
+.med-valor { padding: 0.2rem 0.5rem; font-weight: 800; color: #1e40af; text-align: center; border-right: 1px solid #f1f5f9; }
+.med-unid { padding: 0.2rem 0.5rem; color: #64748b; font-size: 0.65rem; text-align: center; }
+.med-vazia { padding: 0.3rem 0.5rem; color: #94a3b8; font-style: italic; text-align: center; }
 
-    @media print {
-        .print-bar { display: none !important; }
-        body { background: white; }
-        .capa { border-radius: 0; }
-        .card { box-shadow: none; border-color: #ccc; }
-        @page { margin: 1.5cm; }
-    }
+/* ── OBS ── */
+.obs-box {
+    background: #fffbeb; border-left: 2px solid #f59e0b;
+    border-radius: 0 4px 4px 0; padding: 0.25rem 0.5rem;
+    font-size: 0.68rem; color: #78350f; line-height: 1.4;
+    display: flex; gap: 0.35rem; align-items: baseline;
+}
+.obs-label {
+    font-size: 0.5rem; font-weight: 800; letter-spacing: 0.1em;
+    background: #f59e0b; color: white; padding: 0.08rem 0.3rem;
+    border-radius: 2px; flex-shrink: 0;
+}
 
-    @media (max-width: 600px) {
-        .card { grid-template-columns: 1fr; }
-        .card-photo-col { min-height: 160px; }
-        .card-img { height: 160px; }
-        .capa { padding: 2.5rem 1.5rem; }
-        .capa h1 { font-size: 1.6rem; }
-        .catalogo { padding: 0 0.75rem 3rem; }
-    }
+/* ── RODAPÉ ── */
+.rodape {
+    max-width: 960px; margin: 0 auto 1rem;
+    padding: 0.6rem 1.5rem; border-top: 1px solid #dde3ed;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 0.62rem; color: #94a3b8; letter-spacing: 0.03em;
+}
+
+/* ── BOTÃO FLUTUANTE ── */
+.print-bar { position: fixed; bottom: 1.2rem; right: 1.2rem; z-index: 999; display: flex; gap: 0.5rem; align-items: center; }
+.btn-print {
+    background: linear-gradient(135deg, #1e40af, #2563eb); color: white; border: none;
+    padding: 0.75rem 1.4rem; border-radius: 50px; font-size: 0.85rem; font-weight: 700;
+    cursor: pointer; box-shadow: 0 6px 20px rgba(37,99,235,0.45);
+    display: flex; align-items: center; gap: 0.4rem;
+}
+.btn-print:hover { filter: brightness(1.08); }
+.btn-close-bar {
+    background: white; color: #64748b; border: 1px solid #e2e8f0;
+    padding: 0.75rem 1rem; border-radius: 50px; font-size: 0.82rem;
+    font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+
+/* ── IMPRESSÃO ── */
+@media print {
+    @page { size: A4; margin: 1cm 1.2cm; }
+    body { background: white !important; font-size: 10.5px; }
+    .print-bar { display: none !important; }
+    .capa-wrapper { margin-bottom: 0.8rem; }
+    .catalogo { padding: 0 0 1.5rem; gap: 0.55rem; }
+    .card { box-shadow: none !important; border: 1px solid #d1d5db !important; border-radius: 8px; }
+    .card-left { background: #0f172a !important; min-height: 110px; }
+    .card-img { max-height: 95px; }
+    .med-table thead { background: #1e40af !important; }
+    .med-table th { color: white !important; }
+    .row-even { background: #fff !important; }
+    .row-odd  { background: #f8fafc !important; }
+    .obs-box { background: #fffbeb !important; border-left: 2px solid #f59e0b !important; }
+    .card-cat { background: #2563eb !important; color: white !important; }
+}
+
+@media (max-width: 600px) {
+    .card { grid-template-columns: 1fr; }
+    .card-left { min-height: 120px; }
+    .capa-inner { padding: 1.5rem 1.2rem 1rem; flex-direction: column; align-items: flex-start; }
+    .capa-titulo { font-size: 1.5rem; }
+    .capa-footer { padding: 0.4rem 1.2rem; }
+    .catalogo { padding: 0 0.75rem 2rem; }
+}
 </style>
 </head>
 <body>
 
-<div class="capa">
-    <div class="capa-tag">Catálogo Técnico</div>
-    <h1>Catálogo de Peças</h1>
-    <div class="capa-meta">
-        <span>📦 ${pecas.length} ${pecas.length === 1 ? 'peça registrada' : 'peças registradas'}</span>
-        <span>📅 Gerado em ${dataFormatada}</span>
+<div class="capa-wrapper">
+    <div class="capa-inner">
+        <div class="capa-left">
+            <div class="capa-eyebrow">Documentação Técnica Oficial</div>
+            <div class="capa-titulo">Catálogo<br>de Peças</div>
+            <div class="capa-subtitulo">Especificações técnicas e dimensionais</div>
+        </div>
+        <div class="capa-right">
+            <div class="capa-stat">
+                <div class="capa-stat-num">${pecas.length}</div>
+                <div class="capa-stat-label">${pecas.length === 1 ? 'Peça' : 'Peças'}</div>
+            </div>
+            <div class="capa-stat">
+                <div class="capa-stat-num" style="font-size:0.88rem;">${dataFormatada}</div>
+                <div class="capa-stat-label">Emissão</div>
+            </div>
+        </div>
+    </div>
+    <div class="capa-footer">
+        <span>Catálogo Técnico PWA</span>
+        <span>Gerado em ${dataFormatada}</span>
     </div>
 </div>
 
@@ -2744,12 +2845,13 @@
 </div>
 
 <div class="rodape">
-    Catálogo gerado automaticamente pelo Catálogo Técnico PWA — ${dataFormatada}
+    <span>Catálogo Técnico PWA</span>
+    <span>Total: ${pecas.length} ${pecas.length === 1 ? 'item' : 'itens'} · Emissão: ${dataFormatada}</span>
 </div>
 
 <div class="print-bar">
     <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
-    <button class="btn-close-bar" onclick="window.close()">✕ Fechar</button>
+    <button class="btn-close-bar" onclick="window.close()">✕</button>
 </div>
 
 </body>
